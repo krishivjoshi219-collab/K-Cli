@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "k-cli"
+version = "0.3.0"
+description = "K-CLI: verification-first local AI coding agent"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "psutil>=5.9.0",
+    "requests>=2.28.0",
+    "httpx>=0.24.0",
+    "pytest>=8.0.0",
+    "prompt-toolkit>=3.0.0",
+    "textual>=0.80.0",
+]
+
+[project.scripts]
+k-cli = "cli:app"
+
+[tool.setuptools]
+py-modules = [
+    "cli",
+    "session",
+    "orchestrator",
+    "verifier",
+    "patcher",
+    "git_guard",
+    "repo_map",
+    "doc_retriever",
+    "llm_driver",
+    "diff_viewer",
+    "tui",
+    "model_manager",
+    "persona",
+    "subagents",
+    "tui_app",
+    "workflow",
+    "audit",
+    "prompting",
+    "security",
+    "feature",
+    "rules",
+]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["__pycache__/*", "*.pyc"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+pythonpath = ["..", "."]

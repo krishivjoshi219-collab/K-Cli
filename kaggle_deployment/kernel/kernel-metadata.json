@@ -1,0 +1,19 @@
+{
+  "id": "krishivjoshi/bankai-10b-frontier-training",
+  "title": "Bankai 10B Frontier Training",
+  "code_file": "train_kaggle_10b.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [
+    "krishivjoshi/bankai-flagship-expanded",
+    "krishivjoshi/bankai-frontier-100k"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": [],
+  "machine_shape": "T4_X2"
+}

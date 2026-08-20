@@ -1,0 +1,16 @@
+{
+  "id": "krishivjoshi/bankai-7b-dual-t4-lightning-training",
+  "title": "Bankai 7B Dual T4 Lightning Training",
+  "code_file": "train_kaggle_dual_t4.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [
+    "krishivjoshi/bankai-flagship-expanded"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}
