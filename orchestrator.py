@@ -48,9 +48,6 @@ class Persona(str, Enum):
     CODER = "CODER"
     CRITIC = "CRITIC"
     DEBUGGER = "DEBUGGER"
-    CONFLICT_RESOLVER = "CONFLICT_RESOLVER"
-    PR_REVIEWER = "PR_REVIEWER"
-    MCP_OPERATOR = "MCP_OPERATOR"
 
 
 PERSONA_PROMPTS: Dict[Persona, str] = {
@@ -83,20 +80,6 @@ PERSONA_PROMPTS: Dict[Persona, str] = {
         "Analyze the provided line number, stack trace, and original code. "
         "Output ONLY the corrected code enclosed in markdown code blocks. "
         "Do NOT output any conversational text or explanation outside the code block."
-    ),
-    Persona.CONFLICT_RESOLVER: (
-        "You are [CONFLICT_RESOLVER] persona for K-CLI AI Agent. "
-        "Inspect git merge conflict markers (<<<<<<<, =======, >>>>>>>) and AST scope context. "
-        "Synthesize correct 3-way conflict resolutions that preserve semantic logic from both branches and maintain syntactic validity."
-    ),
-    Persona.PR_REVIEWER: (
-        "You are [PR_REVIEWER] persona for K-CLI AI Agent. "
-        "Analyze Pull Request diffs, inspect CI check statuses, and identify security vulnerabilities, bugs, and performance bottlenecks. "
-        "Provide structured verdicts, actionable code suggestions, and concise markdown summaries."
-    ),
-    Persona.MCP_OPERATOR: (
-        "You are [MCP_OPERATOR] persona for K-CLI AI Agent. "
-        "Inspect available Model Context Protocol (MCP) server tools, construct valid JSON-RPC tool parameters, execute remote MCP tools, and interpret tool results."
     ),
 }
 
@@ -225,11 +208,6 @@ class Orchestrator:
                 if d_match and d_match.is_duplicate:
                     dedup_warning = f"Duplicate task detected ({d_match.confidence:.1%}): {d_match.explanation}"
                     dedup_dict = d_match.to_dict()
-                    history.append({
-                        "persona": "DEDUP_ENGINE",
-                        "output": dedup_warning,
-                        "match": dedup_dict,
-                    })
             except Exception:
                 pass
 
