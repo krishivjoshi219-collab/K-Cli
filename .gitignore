@@ -35,3 +35,20 @@ kaggle_deployment/**/*.ipynb
 .DS_Store
 .idea/
 .vscode/
+
+# ML Training Artifacts (never commit these)
+data/
+kaggle_deployment/
+*.jsonl
+*.jsonl.gz
+*.egg-info/
+
+# Internal AI agent workspace files
+.agents/
+ORIGINAL_REQUEST.md
+AGENTS.md
+
+# Python build artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
