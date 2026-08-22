@@ -700,6 +700,59 @@ class SlashCommandHandler:
             self._handle_test(arg)
             return True, "TEST_HANDLED"
 
+        # /keys, /api, /vault
+        if cmd in ("keys", "api", "vault", "creds"):
+            self.console.print(Panel(
+                "[bold cyan]🔑 K-CLI Credentials Vault[/bold cyan]\n\n"
+                f"• GITHUB_TOKEN: {'[green]Configured[/green]' if os.environ.get('GITHUB_TOKEN') else '[red]Missing[/red]'}\n"
+                f"• GEMINI_API_KEY: {'[green]Configured[/green]' if os.environ.get('GEMINI_API_KEY') else '[red]Missing[/red]'}\n"
+                f"• ANTHROPIC_API_KEY: {'[green]Configured[/green]' if os.environ.get('ANTHROPIC_API_KEY') else '[red]Missing[/red]'}\n"
+                f"• OPENAI_API_KEY: {'[green]Configured[/green]' if os.environ.get('OPENAI_API_KEY') else '[red]Missing[/red]'}\n"
+                f"• DEEPSEEK_API_KEY: {'[green]Configured[/green]' if os.environ.get('DEEPSEEK_API_KEY') else '[red]Missing[/red]'}\n"
+                f"• GROQ_API_KEY: {'[green]Configured[/green]' if os.environ.get('GROQ_API_KEY') else '[red]Missing[/red]'}\n\n"
+                "[dim]To update credentials, run: [bold white]k-cli ui[/bold white] and press [bold white]Ctrl+A[/bold white], or export in your terminal.[/dim]",
+                title="Credentials Vault Status",
+                border_style="cyan",
+            ))
+            return True, "KEYS_HANDLED"
+
+        # /conflict
+        if cmd in ("conflict", "conflicts"):
+            from k_cli.conflict_resolver import ConflictResolver
+            res = ConflictResolver().find_conflicts()
+            if not res:
+                self.console.print("[bold green]✔ Zero git merge conflicts in repository.[/bold green]")
+            else:
+                self.console.print(f"[bold yellow]⚠️ Found {len(res)} active merge conflicts in workspace.[/bold yellow]")
+            return True, "CONFLICT_HANDLED"
+
+        # /gh or /github
+        if cmd in ("gh", "github", "issues", "prs"):
+            from k_cli.github_engine import GitHubEngine
+            engine = GitHubEngine()
+            issues = engine.list_issues(limit=5)
+            self.console.print(f"[bold cyan]🐙 GitHub Issues ({len(issues)} listed):[/bold cyan]")
+            for i in issues:
+                self.console.print(f"  #{i.number}: {i.title} (@{i.author})")
+            return True, "GH_HANDLED"
+
+        # /solve <issue_num>
+        if cmd in ("solve", "fix_issue") and arg:
+            try:
+                num = int(arg.strip("#"))
+                from k_cli.github_engine import GitHubEngine
+                from k_cli.verifier import Verifier
+                from k_cli.patcher import Patcher
+                self.console.print(f"[bold cyan]Autonomously investigating issue #{num}...[/bold cyan]")
+                res = GitHubEngine().solve_issue(issue_number=num, llm_driver=self.session.driver, verifier=Verifier(), patcher=Patcher(), auto_pr=True)
+                if res.success:
+                    self.console.print(f"[bold green]✔ Issue #{num} solved! Branch: {res.branch_name}, PR: {res.pr_url}[/bold green]")
+                else:
+                    self.console.print(f"[bold red]✘ Issue #{num} failed: {res.error_message}[/bold red]")
+            except ValueError:
+                self.console.print("[bold red]Please provide a numeric issue number: /solve <number>[/bold red]")
+            return True, "SOLVE_HANDLED"
+
         # Delegate /add, /remove, /map, /status to SessionManager
         handled, msg = self.session.handle_slash_command(raw)
         if handled:

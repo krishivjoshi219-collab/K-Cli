@@ -2423,6 +2423,8 @@ app.add_typer(gist_app, name="gist")
 
 def interactive_mode(model: str = "qwen2.5-coder:1.5b", mock: bool = False):
     """Interactive multi-turn prompt shell when typing 'k' without arguments."""
+    if hasattr(console, "is_terminal") and console.is_terminal:
+        console.clear()
     session = SessionManager(workspace_dir=".", model_name=model, mock_mode=mock)
     print_banner()
     console.print("[bold cyan]K-CLI Interactive Shell ready. Type /help for slash commands or /exit to quit.[/bold cyan]\n")
