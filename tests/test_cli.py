@@ -14,6 +14,7 @@ from typer.testing import CliRunner
 from rich.syntax import Syntax
 from rich.panel import Panel
 
+import k_cli.cli as cli_module
 from k_cli.cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff, interactive_mode
 from k_cli.orchestrator import Orchestrator, Persona
 from k_cli.llm_driver import LLMDriver
@@ -108,6 +109,53 @@ def test_cli_multi_model_audit_mock():
     )
     assert result.exit_code == 0
     assert "Independent model audit" in result.output
+
+
+def test_cli_model_index_json(monkeypatch):
+    fake_rows = [
+        cli_module.ModelIndexEntry(
+            model_id="openai/gpt-4o",
+            name="GPT-4o",
+            provider="openai",
+            context_length=128000,
+            pricing_summary="in=n/a, out=n/a",
+            specialty="general",
+            description="test",
+        )
+    ]
+    monkeypatch.setattr(cli_module, "fetch_global_model_index", lambda: fake_rows)
+    result = runner.invoke(app, ["model-index", "--json"])
+    assert result.exit_code == 0
+    assert "openai/gpt-4o" in result.output
+
+
+def test_cli_mesh_mock(monkeypatch):
+    def fake_mesh(task, parsed_targets, mock=False, max_workers=8):
+        return [
+            cli_module.ModelMeshResult(
+                target=cli_module.ModelTarget(provider="openai", model="gpt-4o"),
+                success=True,
+                output="def x():\n    return 1\n",
+                latency_ms=5,
+                error=None,
+            )
+        ]
+
+    monkeypatch.setattr(cli_module, "run_model_mesh", fake_mesh)
+    result = runner.invoke(app, ["mesh", "write function", "--targets", "openai:gpt-4o", "--mock"])
+    assert result.exit_code == 0
+    assert "Concurrent model mesh results" in result.output
+
+
+def test_cli_key_set(monkeypatch):
+    class FakeVault:
+        def set_key(self, provider, key):
+            return "test-backend"
+
+    monkeypatch.setattr(cli_module, "APIKeyVault", FakeVault)
+    result = runner.invoke(app, ["key-set", "--provider", "openai", "--key", "sk-test-123"])
+    assert result.exit_code == 0
+    assert "test-backend" in result.output
 
 
 def test_cli_doctor_reports_secret_hygiene(tmp_path):
@@ -370,4 +418,3 @@ def test_cli_ui_and_tui_command_help():
     res_tui = runner.invoke(app, ["tui", "--help"])
     assert res_tui.exit_code == 0
     assert "Textual" in res_tui.output
-

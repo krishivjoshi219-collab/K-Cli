@@ -76,6 +76,9 @@ k-cli run "add retry handling" \
 | `k-cli run "task"` | Runs the persona pipeline and verifies generated code. |
 | `k-cli prompt "task" --model gemini` | Previews a compact model-aware prompt contract. |
 | `k-cli audit "task" --models model-a,model-b` | Independently generates candidates and locally verifies each one. |
+| `k-cli mesh "task" --targets gemini:gemini-2.5-pro,openrouter:anthropic/claude-3.7-sonnet` | Runs one task across many models at the same time with verification results. |
+| `k-cli model-index --query coder` | Fetches a global web model index and inferred specialties. |
+| `k-cli key-set --provider openai --key ...` | Stores provider API keys in keyring or encrypted local vault fallback. |
 | `k-cli feature "capability" --require-tests` | Checks implementation and test evidence for a requested feature. |
 | `k-cli verify file.py` | Verifies an existing Python, Bash, or C++ file. |
 | `k-cli subagents "task"` | Decomposes a complex task into explorer, researcher, refactorer, and tester roles. |
@@ -116,6 +119,8 @@ Use `plan` when you want the agent to understand the work before changing it. Us
 ## Providers and configuration
 
 Copy `.env.example` to `.env` only for local use. Never commit it. Provider credentials are read from environment variables such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GEMINI_API_KEY`.
+
+For secure key handling, prefer `k-cli key-set ...` so credentials stay in OS keyring when available. If keyring is unavailable, K-CLI uses an encrypted local fallback that requires `KCLI_VAULT_PASSPHRASE`.
 
 `HF_TOKEN` is only for optional private model publishing or training workflows. Training data, notebooks, model weights, and generated benchmark artifacts are intentionally excluded from the GitHub package. Keep reproducible training/evaluation work in a separate, documented repository or release artifact.
 

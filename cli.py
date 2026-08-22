@@ -52,6 +52,16 @@ try:
     from k_cli.security import scan_workspace
     from k_cli.feature import inspect_feature
     from k_cli.rules import load_project_rules
+    from k_cli.model_mesh import (
+        APIKeyVault,
+        ModelIndexEntry,
+        ModelMeshResult,
+        ModelTarget,
+        fetch_global_model_index,
+        parse_model_target,
+        run_model_mesh,
+        search_model_index,
+    )
     from k_cli.tui import (
         StatusBar,
         LiveStreamRenderer,
@@ -93,6 +103,16 @@ except (ModuleNotFoundError, ImportError):
     from security import scan_workspace
     from feature import inspect_feature
     from rules import load_project_rules
+    from model_mesh import (
+        APIKeyVault,
+        ModelIndexEntry,
+        ModelMeshResult,
+        ModelTarget,
+        fetch_global_model_index,
+        parse_model_target,
+        run_model_mesh,
+        search_model_index,
+    )
     from tui import (
         StatusBar,
         LiveStreamRenderer,
@@ -420,6 +440,124 @@ def audit_cmd(
     console.print(table)
     status = "[green]Consensus threshold reached[/green]" if result.consensus_reached else "[yellow]No verified consensus yet — review candidates before applying.[/yellow]"
     console.print(status)
+
+
+@app.command(name="model-index", help="Fetch web model index and inferred specialties.")
+def model_index_cmd(
+    query: str = typer.Option("", "--query", "-q", help="Filter by model name/provider/specialty."),
+    limit: int = typer.Option(20, "--limit", "-n", help="Maximum results to return."),
+    as_json: bool = typer.Option(False, "--json", help="Emit machine-readable output."),
+):
+    entries = fetch_global_model_index()
+    rows = search_model_index(entries, query=query, limit=limit)
+    if as_json:
+        payload = [
+            {
+                "model_id": item.model_id,
+                "name": item.name,
+                "provider": item.provider,
+                "context_length": item.context_length,
+                "pricing_summary": item.pricing_summary,
+                "specialty": item.specialty,
+                "description": item.description,
+            }
+            for item in rows
+        ]
+        console.print(json.dumps(payload, indent=2))
+        return
+    table = Table(title="Global model index", box=None)
+    table.add_column("Model", style="cyan")
+    table.add_column("Provider")
+    table.add_column("Specialty")
+    table.add_column("Context")
+    table.add_column("Pricing")
+    for item in rows:
+        table.add_row(
+            item.model_id,
+            item.provider,
+            item.specialty,
+            str(item.context_length or "n/a"),
+            item.pricing_summary,
+        )
+    console.print(table)
+
+
+@app.command(name="mesh", help="Run one prompt concurrently across many model targets.")
+def mesh_cmd(
+    task: str = typer.Argument(..., help="Task/prompt to run on all models."),
+    targets: str = typer.Option(
+        ...,
+        "--targets",
+        "-t",
+        help="Comma-separated targets: model | provider:model | provider:model@base_url",
+    ),
+    max_workers: int = typer.Option(8, "--max-workers", "-w", help="Parallel workers."),
+    mock: bool = typer.Option(False, "--mock", help="Use deterministic mock backend."),
+    use_vault: bool = typer.Option(True, "--use-vault/--no-vault", help="Load provider keys from secure vault."),
+    as_json: bool = typer.Option(False, "--json", help="Emit machine-readable output."),
+):
+    parsed_targets = [parse_model_target(item.strip()) for item in targets.split(",") if item.strip()]
+    if not parsed_targets:
+        raise typer.BadParameter("Provide at least one model target.", param_hint="--targets")
+    if use_vault:
+        vault = APIKeyVault()
+        for provider in {target.provider for target in parsed_targets if target.provider}:
+            try:
+                vault.export_to_env(provider)  # best effort; env fallback still supported
+            except Exception:
+                continue
+
+    results = run_model_mesh(task, parsed_targets, mock=mock, max_workers=max_workers)
+    verifier = Verifier()
+    audited = []
+    for result in results:
+        verification = verifier.verify(result.output, language="python") if result.success else None
+        audited.append((result, verification))
+
+    if as_json:
+        payload = [
+            {
+                "target": {
+                    "provider": item.target.provider,
+                    "model": item.target.model,
+                    "base_url": item.target.base_url,
+                },
+                "success": item.success,
+                "latency_ms": item.latency_ms,
+                "error": item.error,
+                "verification": verification.to_dict() if verification else None,
+            }
+            for item, verification in audited
+        ]
+        console.print(json.dumps(payload, indent=2))
+        if any((verification is not None and not verification.success) for _, verification in audited):
+            raise typer.Exit(code=1)
+        return
+
+    table = Table(title="Concurrent model mesh results", box=None)
+    table.add_column("Target", style="cyan")
+    table.add_column("Status")
+    table.add_column("Latency")
+    table.add_column("Verification")
+    for item, verification in audited:
+        target_name = f"{item.target.provider or 'auto'}:{item.target.model}"
+        status = "[green]ok[/green]" if item.success else "[red]error[/red]"
+        verification_status = (
+            "[green]passed[/green]"
+            if verification and verification.success
+            else ("[red]failed[/red]" if verification else "[yellow]n/a[/yellow]")
+        )
+        table.add_row(target_name, status, f"{item.latency_ms} ms", verification_status)
+    console.print(table)
+
+
+@app.command(name="key-set", help="Store a provider API key in secure key vault.")
+def key_set_cmd(
+    provider: str = typer.Option(..., "--provider", "-p", help="Provider: gemini, anthropic, openai, deepseek, openrouter, openai-compatible."),
+    key: str = typer.Option(..., "--key", help="Provider API key to store."),
+):
+    backend = APIKeyVault().set_key(provider, key)
+    console.print(f"[green]Stored key for {provider} using {backend} backend.[/green]")
 
 
 @app.command(name="feature", help="Collect read-only source and test evidence for a feature claim.")
