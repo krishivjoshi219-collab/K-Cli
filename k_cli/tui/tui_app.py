@@ -825,8 +825,18 @@ class KCliCyberWorkstation(App):
             with VerticalScroll(id="sidebar-left"):
                 yield Label("🚀 1-CLICK LAUNCHER", classes="sidebar-section-title")
                 yield Button("🔑 API Key Vault", variant="primary", id="btn-side-vault", classes="launcher-btn")
+                yield Button("👻 Ghost Autopilot", variant="default", id="btn-side-ghost", classes="launcher-btn")
+                yield Button("🐝 Adversarial Swarm", variant="warning", id="btn-side-swarm", classes="launcher-btn")
+                yield Button("🧠 Synapse Code Graph", variant="default", id="btn-side-synapse", classes="launcher-btn")
+                yield Button("🛡️ Air-Gapped Mode", variant="success", id="btn-side-airgap", classes="launcher-btn")
+                yield Button("🎯 AI Git Bisect", variant="default", id="btn-side-bisect", classes="launcher-btn")
+                yield Button("👁️ PR Review Bot", variant="default", id="btn-side-watch", classes="launcher-btn")
+                yield Button("⚡ Smart Cost Router", variant="default", id="btn-side-route", classes="launcher-btn")
+                yield Button("🌿 Repo Gardener", variant="success", id="btn-side-garden", classes="launcher-btn")
+                yield Button("💬 Codebase Q&A", variant="default", id="btn-side-explain", classes="launcher-btn")
+                yield Button("🏗️ Full-Stack Scaffold", variant="primary", id="btn-side-scaffold", classes="launcher-btn")
                 yield Button("⚔️ Merge Conflicts", variant="default", id="btn-side-conflicts", classes="launcher-btn")
-                yield Button("🐙 GitHub Issues & PRs", variant="default", id="btn-side-github", classes="launcher-btn")
+                yield Button("🐙 GitHub Center", variant="default", id="btn-side-github", classes="launcher-btn")
                 yield Button("🤖 Switch AI Model", variant="default", id="btn-side-models", classes="launcher-btn")
                 yield Button("🛡️ Security Auto-Heal", variant="warning", id="btn-side-security", classes="launcher-btn")
                 yield Button("🚨 Incident Triage", variant="error", id="btn-side-triage", classes="launcher-btn")
@@ -931,6 +941,84 @@ class KCliCyberWorkstation(App):
     @on(Button.Pressed, "#btn-side-triage")
     def on_triage_click(self) -> None:
         self.app.notify("Ready to triage stack traces & CI failure logs.", title="Incident Triage", severity="information")
+
+    @on(Button.Pressed, "#btn-side-ghost")
+    def on_ghost_click(self) -> None:
+        self.app.notify("Ghost Terminal Autopilot active: monitoring child processes for crashes.", title="Ghost Autopilot", severity="information")
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown("### 👻 Ghost Terminal Autopilot\nAttached to workspace. Run any test or dev server with `k-cli ghost \"npm run dev\"` or `k-cli ghost \"pytest\"`."))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-swarm")
+    def on_swarm_click(self) -> None:
+        from k_cli.agents.adversarial_swarm import AdversarialConsensusSwarm
+        swarm = AdversarialConsensusSwarm(max_rounds=2)
+        res = swarm.run_consensus("Verify zero-defect implementation of core algorithms")
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown(res.render_markdown()))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-synapse")
+    def on_synapse_click(self) -> None:
+        from k_cli.tools.synapse_graph import SynapseCodeGraph
+        graph = SynapseCodeGraph()
+        sl = graph.extract_subgraph_slice("core orchestrator verifier")
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown(sl.render_context()))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-airgap")
+    def on_airgap_click(self) -> None:
+        from k_cli.core.airgap import AirgapManager
+        rep = AirgapManager().audit_environment()
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown(rep.render_markdown()))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-bisect")
+    def on_bisect_click(self) -> None:
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown("### 🎯 AI Git Bisect Bug Hunter\nRun `k-cli bisect \"pytest tests/ -q\"` to automatically isolate the commit that introduced a test regression!"))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-watch")
+    def on_watch_click(self) -> None:
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown("### 👁️ Autonomous PR Watcher Daemon\nRun `k-cli watch --interval 30 --auto-merge` to review and auto-merge PRs 24/7."))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-route")
+    def on_route_click(self) -> None:
+        from k_cli.core.smart_router import SmartModelRouter
+        dec = SmartModelRouter().route("Refactor multi-file architectural modules")
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown(f"### ⚡ Smart Model Router Decision\n- **Selected Model**: `{dec.selected_model}` ({dec.selected_provider})\n- **Estimated Cost**: `${dec.estimated_cost_usd:.4f}`\n- **Savings vs GPT-4**: `${dec.savings_usd:.4f}` ({dec.savings_usd/dec.baseline_gpt4_cost_usd:.1%})\n- **Rationale**: {dec.reasoning}"))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-garden")
+    def on_garden_click(self) -> None:
+        from k_cli.tools.repo_gardener import RepoGardener
+        rep = RepoGardener().run_garden_sweep()
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown(rep.render_markdown()))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-explain")
+    def on_explain_click(self) -> None:
+        from k_cli.tools.codebase_qa import CodebaseQAEngine
+        qa = CodebaseQAEngine()
+        res = qa.ask("Explain the high-level architecture and execution pipeline of this repository")
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown(res.render_markdown()))
+        scroll.scroll_end(animate=False)
+
+    @on(Button.Pressed, "#btn-side-scaffold")
+    def on_scaffold_click(self) -> None:
+        from k_cli.agents.scaffold_engine import FullStackScaffolder
+        res = FullStackScaffolder().scaffold("FastAPI + Redis Cache + Pytest")
+        scroll = self.query_one("#chat-scroll", VerticalScroll)
+        scroll.mount(Markdown(res.render_markdown()))
+        scroll.scroll_end(animate=False)
 
     @on(Button.Pressed, "#btn-side-diagram")
     def on_diagram_click(self) -> None:
