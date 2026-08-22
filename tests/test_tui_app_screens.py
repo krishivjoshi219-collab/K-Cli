@@ -1,5 +1,5 @@
 """
-test_tui_app_screens.py - Unit & Modal Tests for Claude Code / AGY Style KCliCyberWorkstation
+test_tui_app_screens.py - Unit & Modal Tests for Flagship Hybrid KCliCyberWorkstation
 Project Bankai Engine v0.4.0
 """
 
@@ -13,6 +13,7 @@ from k_cli.tui_app import (
     ConflictStudioModal,
     GitHubCenterModal,
     ModelHubModal,
+    SecurityScannerModal,
 )
 
 
@@ -57,4 +58,12 @@ def test_model_hub_modal():
     assert hasattr(modal, "on_bench")
     assert hasattr(modal, "on_pull")
     assert hasattr(modal, "on_select")
+    assert hasattr(modal, "on_close")
+
+
+def test_security_scanner_modal():
+    """Verifies SecurityScannerModal methods."""
+    modal = SecurityScannerModal()
+    assert hasattr(modal, "on_scan")
+    assert hasattr(modal, "on_heal")
     assert hasattr(modal, "on_close")
