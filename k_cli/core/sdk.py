@@ -136,6 +136,7 @@ class KCLI:
         # Specialized Tooling
         self.github = GitHubEngine(token=github_token, repo_path=str(self.repo_path))
         self.pr_lifecycle = PRLifecycleManager(client=GitHubClient(token=github_token))
+        self.github.client = self.pr_lifecycle.client
         self.conflicts = ConflictResolver()
         self.mcp = MCPManager()
         self.security = SecurityHealer(repo_path=str(self.repo_path), llm_driver=self.driver)
@@ -235,3 +236,72 @@ class KCLI:
         if proposal.subject:
             self.smart_git.auto_stage_and_commit(message=proposal.full_message, push=push)
         return proposal
+
+    # =========================================================================
+    # 10 Killer Agentic Features
+    # =========================================================================
+
+    def watch_prs(self, interval_seconds: int = 30, max_iterations: Optional[int] = 1, auto_merge: bool = False) -> List[Any]:
+        """Feature 1: Autonomous PR Review & Watcher Daemon."""
+        from k_cli.github.pr_watcher import PRWatcherDaemon
+        daemon = PRWatcherDaemon(
+            repo_path=str(self.repo_path),
+            github_client=self.github.client if hasattr(self.github, "client") else None,
+            llm_driver=self.driver,
+            auto_merge_approved=auto_merge,
+        )
+        return daemon.run_loop(interval_seconds=interval_seconds, max_iterations=max_iterations)
+
+    def bisect(self, test_command: str = "pytest tests/ -q", good_commit: str = "HEAD~5", bad_commit: str = "HEAD") -> Any:
+        """Feature 2: AI-Powered Git Bisect & Regression Hunter."""
+        from k_cli.git.ai_bisect import AIBisectEngine
+        engine = AIBisectEngine(repo_path=str(self.repo_path), llm_driver=self.driver, verifier=self.verifier, patcher=self.patcher)
+        return engine.run_bisect(test_command=test_command, good_commit=good_commit, bad_commit=bad_commit)
+
+    def route(self, task_prompt: str) -> Any:
+        """Feature 3: Cost & Latency Smart Model Router."""
+        from k_cli.core.smart_router import SmartModelRouter
+        router = SmartModelRouter(hub=self.models)
+        return router.route(task_prompt=task_prompt)
+
+    def garden(self) -> Any:
+        """Feature 4: Nightly Autonomous Repo Maintenance & Health Engine."""
+        from k_cli.tools.repo_gardener import RepoGardener
+        gardener = RepoGardener(repo_path=str(self.repo_path))
+        return gardener.run_garden_sweep()
+
+    def explain(self, query: str) -> Any:
+        """Feature 5: Codebase Natural Language Search & Semantic Q&A."""
+        from k_cli.tools.codebase_qa import CodebaseQAEngine
+        qa = CodebaseQAEngine(repo_path=str(self.repo_path), llm_driver=self.driver)
+        return qa.ask(query=query)
+
+    def ghost(self, command_str: str) -> int:
+        """Feature 6: Ghost Terminal Autopilot & Error Healer Daemon."""
+        from k_cli.tools.ghost_daemon import GhostTerminalDaemon
+        ghost_d = GhostTerminalDaemon(repo_path=str(self.repo_path), llm_driver=self.driver, verifier=self.verifier, patcher=self.patcher)
+        return ghost_d.run_wrapped_command(command_str=command_str)
+
+    def swarm_adversarial(self, task_prompt: str, language: str = "python") -> Any:
+        """Feature 7: Adversarial Red Team / Blue Team Consensus Loop."""
+        from k_cli.agents.adversarial_swarm import AdversarialConsensusSwarm
+        swarm = AdversarialConsensusSwarm(llm_driver=self.driver, verifier=self.verifier)
+        return swarm.run_consensus(task_prompt=task_prompt, language=language)
+
+    def synapse(self, query: str) -> Any:
+        """Feature 8: AST Neural Code Graph & Context Compressor."""
+        from k_cli.tools.synapse_graph import SynapseCodeGraph
+        graph = SynapseCodeGraph(repo_path=str(self.repo_path))
+        return graph.extract_subgraph_slice(query=query)
+
+    def airgap(self) -> Any:
+        """Feature 9: Sovereign Air-Gapped Offline Engine."""
+        from k_cli.core.airgap import AirgapManager
+        mgr = AirgapManager()
+        return mgr.audit_environment()
+
+    def scaffold(self, spec_prompt: str, target_dir: str = "./scaffolded_app", write_to_disk: bool = False) -> Any:
+        """Feature 10: Natural Language Full-Stack Scaffolder."""
+        from k_cli.agents.scaffold_engine import FullStackScaffolder
+        scaffolder = FullStackScaffolder(llm_driver=self.driver, verifier=self.verifier)
+        return scaffolder.scaffold(spec_prompt=spec_prompt, target_dir=target_dir, write_to_disk=write_to_disk)

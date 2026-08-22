@@ -2421,6 +2421,132 @@ app.add_typer(action_app, name="action")
 app.add_typer(gist_app, name="gist")
 
 
+# =============================================================================
+# 10 Killer Agentic CLI Commands
+# =============================================================================
+
+@app.command(name="watch", help="Feature 1: Autonomous PR Review & Watcher Daemon.")
+def watch_cmd(
+    interval: int = typer.Option(30, "--interval", "-i", help="Polling interval in seconds."),
+    auto_merge: bool = typer.Option(False, "--auto-merge", help="Auto-merge approved PRs when CI passes."),
+    once: bool = typer.Option(False, "--once", help="Run a single review cycle and exit."),
+):
+    from k_cli.github.pr_watcher import PRWatcherDaemon
+    daemon = PRWatcherDaemon(auto_merge_approved=auto_merge)
+    console.print(f"[bold cyan]👁️ K-CLI PR Watcher Daemon active...[/bold cyan]")
+    events = daemon.run_loop(interval_seconds=interval, max_iterations=1 if once else None, callback=lambda ev: console.print(f"[green]✔ PR #{ev.pr_number}: {ev.review_status} ({ev.action_taken})[/green]"))
+    console.print(f"[dim]Processed {len(events)} PR review event(s).[/dim]")
+
+
+@app.command(name="bisect", help="Feature 2: AI-Powered Git Bisect & Regression Hunter.")
+def bisect_cmd(
+    test_cmd: str = typer.Argument(..., help="Test command to evaluate regressions (e.g. 'pytest tests/ -q')."),
+    good: str = typer.Option("HEAD~5", "--good", help="Known good commit SHA."),
+    bad: str = typer.Option("HEAD", "--bad", help="Known bad commit SHA."),
+):
+    from k_cli.git.ai_bisect import AIBisectEngine
+    engine = AIBisectEngine()
+    console.print(f"[bold magenta]🎯 Starting AI Git Bisect between {good} and {bad}...[/bold magenta]")
+    res = engine.run_bisect(test_command=test_cmd, good_commit=good, bad_commit=bad)
+    console.print(Markdown(res.render_markdown()))
+
+
+@app.command(name="route", help="Feature 3: Cost & Latency Smart Model Router.")
+def route_cmd(
+    task: str = typer.Argument(..., help="Task prompt to analyze and route."),
+):
+    from k_cli.core.smart_router import SmartModelRouter
+    router = SmartModelRouter()
+    dec = router.route(task_prompt=task)
+    console.print(Panel(
+        f"[bold cyan]Selected Model:[/bold cyan] {dec.selected_model} ({dec.selected_provider})\n"
+        f"[bold yellow]Task Tier:[/bold yellow] {dec.tier.value.upper()}\n"
+        f"[bold green]Estimated Cost:[/bold green] ${dec.estimated_cost_usd:.4f} USD\n"
+        f"[bold blue]Savings vs GPT-4:[/bold blue] ${dec.savings_usd:.4f} USD ({(dec.savings_usd/dec.baseline_gpt4_cost_usd):.1%})\n"
+        f"[dim]Rationale: {dec.reasoning}[/dim]",
+        title="⚡ Smart Model Router Decision",
+        border_style="cyan",
+    ))
+
+
+@app.command(name="garden", help="Feature 4: Nightly Autonomous Repo Maintenance & Health Sweep.")
+def garden_cmd(
+    as_json: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    from k_cli.tools.repo_gardener import RepoGardener
+    gardener = RepoGardener()
+    rep = gardener.run_garden_sweep()
+    if as_json:
+        import json
+        console.print(json.dumps({"health_score": rep.health_score, "findings": len(rep.findings), "dead_code": rep.dead_code_count}))
+    else:
+        console.print(Markdown(rep.render_markdown()))
+
+
+@app.command(name="explain", help="Feature 5: Codebase Natural Language Search & Semantic Q&A.")
+def explain_cmd(
+    query: str = typer.Argument(..., help="Question to ask about the codebase architecture."),
+):
+    from k_cli.tools.codebase_qa import CodebaseQAEngine
+    qa = CodebaseQAEngine()
+    res = qa.ask(query=query)
+    console.print(Markdown(res.render_markdown()))
+
+
+@app.command(name="ghost", help="Feature 6: Ghost Terminal Autopilot & Error Healer.")
+def ghost_cmd(
+    command: str = typer.Argument(..., help="Dev server or test command to wrap (e.g. 'pytest')."),
+):
+    from k_cli.tools.ghost_daemon import GhostTerminalDaemon
+    daemon = GhostTerminalDaemon()
+    console.print(f"[bold cyan]👻 K-CLI Ghost Terminal Autopilot attached to: '{command}'[/bold cyan]\n")
+    code = daemon.run_wrapped_command(command_str=command, on_heal_prompt=lambda p: True)
+    raise typer.Exit(code=code)
+
+
+@app.command(name="swarm", help="Feature 7: Adversarial Red Team / Blue Team Consensus Loop.")
+def swarm_cmd(
+    task: str = typer.Argument(..., help="Coding task to execute through adversarial consensus."),
+    rounds: int = typer.Option(3, "--rounds", "-r", help="Maximum adversarial attack rounds."),
+):
+    from k_cli.agents.adversarial_swarm import AdversarialConsensusSwarm
+    swarm = AdversarialConsensusSwarm(max_rounds=rounds)
+    console.print(f"[bold magenta]🐝 Running Adversarial Consensus Swarm for: '{task}'...[/bold magenta]")
+    res = swarm.run_consensus(task_prompt=task)
+    console.print(Markdown(res.render_markdown()))
+
+
+@app.command(name="synapse", help="Feature 8: AST Neural Code Graph & Context Compressor.")
+def synapse_cmd(
+    query: str = typer.Argument(..., help="Task or keyword to extract minimal AST subgraph for."),
+):
+    from k_cli.tools.synapse_graph import SynapseCodeGraph
+    graph = SynapseCodeGraph()
+    res = graph.extract_subgraph_slice(query=query)
+    console.print(Markdown(res.render_context()))
+
+
+@app.command(name="airgap", help="Feature 9: Sovereign Air-Gapped Offline Engine.")
+def airgap_cmd():
+    from k_cli.core.airgap import AirgapManager
+    mgr = AirgapManager()
+    rep = mgr.audit_environment()
+    console.print(Markdown(rep.render_markdown()))
+
+
+@app.command(name="scaffold", help="Feature 10: Natural Language Full-Stack Scaffolder.")
+def scaffold_cmd(
+    spec: str = typer.Argument(..., help="Natural language description of application to scaffold."),
+    target: str = typer.Option("./scaffolded_app", "--dir", "-d", help="Target output directory."),
+    write: bool = typer.Option(False, "--write", "-w", help="Write scaffolded files to disk."),
+):
+    from k_cli.agents.scaffold_engine import FullStackScaffolder
+    scaffolder = FullStackScaffolder()
+    console.print(f"[bold cyan]🏗️ Scaffolding full-stack application for: '{spec}'...[/bold cyan]")
+    res = scaffolder.scaffold(spec_prompt=spec, target_dir=target, write_to_disk=write)
+    console.print(Markdown(res.render_markdown()))
+
+
 def interactive_mode(model: str = "qwen2.5-coder:1.5b", mock: bool = False):
     """Interactive multi-turn prompt shell when typing 'k' without arguments."""
     if hasattr(console, "is_terminal") and console.is_terminal:

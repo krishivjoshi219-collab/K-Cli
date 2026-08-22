@@ -267,7 +267,7 @@ class IncidentTriageEngine:
 
         # 1. Standard traceback frames: File "...", line X, in Y
         frame_pattern = re.compile(
-            r'File\s+"(?P<file>[^"]+)",\s+line\s+(?P<line>\d+)(?:,\s+in\s+(?P<func>[^\n\r]+))?'
+            r'File\s+["\'](?P<file>[^"\']+)["\'],\s+line\s+(?P<line>\d+)(?:,\s+in\s+(?P<func>[^\n\r]+))?'
             r'(?:\r?\n\s+(?P<code>[^\r\n]+))?',
             re.MULTILINE,
         )
