@@ -1,116 +1,72 @@
-# K-CLI Architecture & Internal Design
+# K-CLI Architecture & System Design
 
-K-CLI is a verification-first, multi-model agentic coding workstation designed for local and cloud workflows on standard developer machines.
+K-CLI is an agentic AI coding workstation built around **compiler-grounded verification**, **multi-model routing**, and **zero cloud lock-in**.
 
 ---
 
 ## 1. High-Level Modular Architecture
 
-K-CLI is structured into four distinct layers with clean boundaries:
-
 ```
-+-----------------------------------------------------------------------------------+
-|                        4. User Interface & Session Layer                          |
-|   cli.py (Typer CLI Hub)  <--->  tui_app.py (Textual Cyber-Workstation)           |
-|   tui.py (Interactive REPL) <---> tui_animations.py (Neon HUD / Speedometers)    |
-+-----------------------------------------+-----------------------------------------+
-                                          |
-+-----------------------------------------+-----------------------------------------+
-|                              1. Core Engine Layer                                 |
-|   orchestrator.py (Pipeline/Memory)  <--->  llm_driver.py (Multi-Provider LLM)     |
-|   verifier.py (AST / Compilers / Test Runners)                                    |
-|   subagents.py (DAG Decomposition, Swarm Dispatcher, Role Workers)                 |
-|   mcp_client.py (Universal Model Context Protocol Hub - stdio/SSE/HTTP)           |
-|   incident_triage.py (Autonomous Crash Log Diagnosis & Regression Healer)          |
-+--------------------+------------------------------------+-------------------------+
-                     |                                    |
-+--------------------+-------------------+    +-----------+-------------------------+
-|     2. Knowledge & Context Layer       |    |       3. Modification & Safety Net  |
-|  doc_retriever.py (SQLite FTS5 / BM25) |    |  patcher.py (SEARCH/REPLACE Blocks) |
-|  repo_map.py (AST Symbol Graph)        |    |  git_guard.py (Snapshots & Rollback)|
-|  dedup_engine.py (Anti-Overlap Scanner)|    |  conflict_resolver.py (3-Way Merge) |
-|  diagram_generator.py (Mermaid Engine) |    |  github_client.py (PR Lifecycle)    |
-|  rules.py (Bounded Untrusted Context)  |    |  smart_git.py (Conventional Commits)|
-|  workflow.py (Protected Read-Only Plan)|    |  security_healer.py (Vuln Healer)   |
-+----------------------------------------+    +-------------------------------------+
-```
-
----
-
-## 2. Core Layers & Responsibilities
-
-### Layer 1: User Interface & Session (`cli.py`, `tui_app.py`, `tui.py`, `tui_animations.py`, `session.py`)
-- **Textual Cyber-Workstation (`tui_app.py`)**: Full-screen terminal workstation built with Textual. Provides reactive status badges, collapsible reasoning accordions, **Interactive 3-Way Conflict Studio**, **GitHub PR Hub**, **MCP Server Inspector**, and **Swarm Radar**.
-- **Visual & Animation Engine (`tui_animations.py`)**: Real-time token speedometer (`tok/s`), cost ticker ($ USD estimation), cyberpunk neon ASCII splash banners, and animated status glow badges.
-- **Typer CLI (`cli.py`)**: Unix-friendly single-shot command line interface supporting `run`, `plan`, `conflict`, `pr`, `mcp`, `dedup`, `commit`, `security`, `triage`, `verify`, `audit`, `diff`, `doctor`, `map`, `doc`, and `ui`. Full `--json` machine-readable output for CI/CD automation.
-
-### Layer 2: Core Engine & Verification (`orchestrator.py`, `llm_driver.py`, `verifier.py`, `subagents.py`, `mcp_client.py`, `incident_triage.py`)
-- **Universal LLM Driver (`llm_driver.py`)**: Multi-provider client abstraction supporting Ollama, native llama.cpp / GGUF, Google Gemini, Anthropic Claude, DeepSeek, OpenRouter, OpenAI, and arbitrary OpenAI-compatible REST gateways (`--base-url`).
-- **Universal MCP Hub (`mcp_client.py`)**: Production client for the Model Context Protocol (MCP) supporting `stdio` subprocesses and `SSE/HTTP` transports, dynamic tool calling, resource inspection, and prompt discovery.
-- **Incident Triage & Auto-Heal (`incident_triage.py`)**: Autonomous diagnosis for Python, Node.js, Rust, Go, C++, Docker crash logs, and GitHub Actions CI failures, synthesizing verified regression test cases and patches.
-- **Ground-Truth Verifier (`verifier.py`)**: Multi-language static and dynamic verification: Python AST parsing, compilation, Bash syntax checking (`bash -n`), C++ compilation (`g++ -fsyntax-only`), and multi-framework test runners (`pytest`, `npm test`, `cargo test`, `go test`).
-- **Subagent Swarm Dispatcher (`subagents.py`)**: DAG task decomposer and parallel worker dispatcher with role specializations (`EXPLORER`, `RESEARCHER`, `REFACTORER`, `TESTER`, `CODER`, `CONFLICT_RESOLVER`, `PR_REVIEWER`, `MCP_OPERATOR`).
-
-### Layer 3: Knowledge, Intelligence & Deduplication (`doc_retriever.py`, `repo_map.py`, `dedup_engine.py`, `diagram_generator.py`, `rules.py`, `workflow.py`)
-- **Repository Deduplication Engine (`dedup_engine.py`)**: Scans Git commit history and AST symbol tables using hybrid BM25 + Jaccard similarity to prevent duplicate tasks or redundant code creation.
-- **Mermaid Diagram Generator (`diagram_generator.py`)**: Auto-generates architecture flowcharts, sequence diagrams, and class diagrams directly from AST dependencies.
-- **DevDocs SQLite Indexer (`doc_retriever.py`)**: High-speed offline SQLite FTS5 database with BM25 ranking for standard library and framework API signatures (< 5ms search latency).
-- **AST Codebase Map (`repo_map.py`)**: PageRank-weighted codebase summaries from AST symbols.
-
-### Layer 4: Modification, GitHub Lifecycle & Safety Net (`patcher.py`, `git_guard.py`, `conflict_resolver.py`, `github_client.py`, `smart_git.py`, `security_healer.py`)
-- **3-Way AI Conflict Resolver (`conflict_resolver.py`)**: Resolves 2-way and 3-way/diff3 Git merge conflicts using AST scope context and compiler verification gates.
-- **GitHub PR Lifecycle Manager (`github_client.py`)**: Manages pull requests, fetches diffs/check runs, performs AI code reviews, self-healing automated fixes, and verified PR merges.
-- **Smart Git Engine (`smart_git.py`)**: Analyzes AST changes in `git diff` to generate Conventional Commits and rich PR descriptions.
-- **Autonomous Security Healer (`security_healer.py`)**: Detects and surgically remediates hardcoded secrets, SQL injections, unsafe `eval()`, ReDoS, and shell injections.
-- **Surgical Patcher (`patcher.py`)**: Parses standard `<<<<<<< SEARCH ... ======= ... >>>>>>>` blocks with whitespace-tolerant fuzzy matching and pre-application AST validation.
-- **Git Guard (`git_guard.py`)**: Automatic repository checkpoint snapshots before modifications and instant rollback (`git restore`) on verification failure.
-
----
-
-## 3. The Verification-First Execution Loop
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Dev as Developer
-    participant CLI as CLI / TUI Workstation
-    participant Session as Session & Rules
-    participant LLM as Universal LLM Driver
-    participant Verifier as Ground-Truth Verifier
-    participant Patcher as Surgical Patcher
-    participant Git as Git Guard
-
-    Dev->>CLI: k-cli run "task" or /plan
-    CLI->>Session: Load context files & bounded rules
-    Session->>LLM: Enhanced prompt with repo map & signatures
-    LLM-->>Session: Candidate code / SEARCH-REPLACE blocks
-    Session->>Verifier: AST Syntax & Type Check
-    alt Verification Fails
-        Verifier-->>Session: Syntax error trace & line numbers
-        Session->>LLM: Auto-debug prompt with error trace
-        LLM-->>Session: Repaired candidate code
-        Session->>Verifier: Re-verify repaired code
-    end
-    Session->>Git: Create workspace safety checkpoint
-    Session->>Patcher: Apply surgical patch
-    Session->>Verifier: Run project test suite (pytest / cargo / npm)
-    alt Tests Pass
-        Verifier-->>Session: All tests passed
-        Session->>Git: Commit atomic verified change
-        Session-->>CLI: Verified Diff & Success Card
-    else Tests Fail
-        Verifier-->>Session: Test failure output
-        Session->>Git: Auto-rollback workspace (git restore)
-        Session-->>CLI: Rollback notification & error details
-    end
-    CLI-->>Dev: Render results & side-by-side diff
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                         1. User Interface & Session Layer                        │
+│   k_cli/cli.py (Typer CLI Hub with 20+ commands)                                  │
+│   k_cli/tui/tui_app.py (Textual 3-Column Cyber-Workstation)                      │
+│   k_cli/tui/tui.py (Streaming REPL) <---> k_cli/tui/tui_animations.py (HUD Engine)│
+└────────────────────────────────────────┬─────────────────────────────────────────┘
+                                         │
+┌────────────────────────────────────────┴─────────────────────────────────────────┐
+│                           2. Core AI & Routing Layer                             │
+│   k_cli/core/llm_driver.py (Multi-Provider: Ollama, Gemini, Claude, OpenAI)     │
+│   k_cli/core/models_hub.py (Model Hub & Speedometer Benchmarks)                  │
+│   k_cli/core/smart_router.py (Cost & Latency Optimizer Smart Router)             │
+│   k_cli/core/airgap.py (Sovereign Air-Gapped Offline Policy Engine)              │
+│   k_cli/core/sdk.py (Universal Programmatic Python API)                          │
+└───────────────────┬──────────────────────────────────┬───────────────────────────┘
+                    │                                  │
+┌───────────────────┴──────────────────┐   ┌───────────┴───────────────────────────┐
+│     3. Multi-Agent Swarm Layer       │   │    4. Git & Code Modification Layer   │
+│  orchestrator.py (5-Stage Persona)   │   │  conflict_resolver.py (3-Way Merge)   │
+│  subagents.py (DAG Swarm Dispatcher) │   │  ai_bisect.py (AI Regression Hunter)  │
+│  adversarial_swarm.py (Red/Blue Team)│   │  smart_git.py (Conventional Commits)  │
+│  scaffold_engine.py (Full-Stack App) │   │  patcher.py (SEARCH/REPLACE Engine)   │
+│  persona.py (Domain System Prompts)  │   │  verifier.py (AST Compiler Guard)     │
+└───────────────────┬──────────────────┘   └───────────┬───────────────────────────┘
+                    │                                  │
+┌───────────────────┴──────────────────────────────────┴───────────────────────────┐
+│                    5. Tools, Diagnostics & Knowledge Layer                       │
+│  ghost_daemon.py (Terminal Autopilot & Runtime Crash Healer)                     │
+│  synapse_graph.py (AST Code Graph & 95%+ Context Compressor)                     │
+│  repo_gardener.py (Nightly Maintenance & Dead Code Pruner)                       │
+│  codebase_qa.py (Local Natural Language Architecture Search)                     │
+│  security_healer.py (Static AST Vulnerability Auto-Healer)                       │
+│  incident_triage.py (Traceback & Actions CI Log Parser)                          │
+│  diagram_generator.py (Mermaid Flowchart & Architecture Engine)                  │
+│  mcp_client.py (Universal Model Context Protocol Hub - stdio/SSE)                │
+│  pr_watcher.py (24/7 Autonomous PR Review & Merge Daemon)                        │
+│  dedup_engine.py (Anti-Overlap BM25 & AST Scanner)                               │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Security Model & Boundaries
+## 2. Package Organization
 
-1. **Credential Hygiene**: Verification subprocesses strip secret environment variables (`API_KEY`, `TOKEN`, `PASSWORD`, `SECRET`, `CREDENTIALS`) before execution.
-2. **Process Boundaries**: Subprocess execution is wrapped with strict CPU/memory limits (`psutil`) and execution timeouts with process group termination (`killpg`).
-3. **Untrusted Context Isolation**: Project rules (`.kcli/rules.md`) are explicitly labeled as `[UNTRUSTED REPOSITORY CONTEXT]` in model prompts and are never executed as system policies.
-4. **Git Safety**: Every modification is guarded by a Git snapshot; failed runs cleanly restore the previous tree state.
+| Package | Key Modules | Primary Responsibility |
+| :--- | :--- | :--- |
+| **`k_cli/core/`** | `llm_driver.py`, `models_hub.py`, `smart_router.py`, `airgap.py`, `sdk.py`, `session.py` | Multi-model inference, dynamic cost routing, sovereign air-gap isolation, session state, and top-level Python SDK. |
+| **`k_cli/agents/`** | `orchestrator.py`, `subagents.py`, `adversarial_swarm.py`, `scaffold_engine.py`, `persona.py` | Multi-agent DAG task decomposition, Red Team vs Blue Team consensus loops, full-stack scaffolding, and specialized domain personas. |
+| **`k_cli/git/`** | `conflict_resolver.py`, `ai_bisect.py`, `smart_git.py`, `patcher.py`, `verifier.py`, `git_guard.py`, `repo_map.py` | 3-way AST merge conflicts, binary git bisect regression hunting, surgical code patch application, and multi-language compiler verification. |
+| **`k_cli/github/`** | `github_engine.py`, `github_client.py`, `pr_watcher.py`, `dedup_engine.py` | GitHub REST v3 integration, autonomous issue solving, 24/7 PR review daemon, and BM25 request deduplication. |
+| **`k_cli/tools/`** | `ghost_daemon.py`, `synapse_graph.py`, `repo_gardener.py`, `codebase_qa.py`, `security_healer.py`, `incident_triage.py`, `diagram_generator.py`, `mcp_client.py` | Ghost terminal crash interceptor, AST neural code graph, repo hygiene gardener, natural language search, security healing, and MCP client. |
+| **`k_cli/tui/`** | `tui_app.py`, `tui.py`, `tui_animations.py`, `diff_viewer.py` | 3-Column Textual Cyber-Workstation, streaming token renderer, cyberpunk ASCII splash banners, and side-by-side diff viewers. |
+
+---
+
+## 3. Ground-Truth Verification Architecture
+
+K-CLI enforces a **strict verification gate** before accepting any generated code:
+
+1. **AST & Syntax Safety**: Python `ast.parse()`, `bash -n`, and `g++ -fsyntax-only` execute in credential-filtered subprocesses.
+2. **Adversarial Red Team Probing**: In `k-cli swarm`, the Red Team automatically generates boundary attack tests (null values, concurrency race conditions, integer overflows) to stress-test candidate code.
+3. **Execution Guard**: Runs local test runners (`pytest`, `cargo test`, `npm test`, `go test`) with timeout cleanup.
+4. **Git Safety Net**: Pre-modification git snapshots allow zero-risk instantaneous rollback (`/rollback` or `kcli.rollback()`).
