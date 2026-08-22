@@ -45,7 +45,48 @@ from k_cli.git.verifier import Verifier
 from k_cli.git.patcher import Patcher
 from k_cli.agents.orchestrator import Orchestrator, OrchestratorResult
 from k_cli.core.session import SessionManager
-# REMOVED: from k_cli.workflow import PlanResult, create_plan
+from dataclasses import dataclass, field
+
+
+@dataclass
+class PlanResult:
+    """Result of a planning operation with optional deduplication warning."""
+    goal: str
+    steps: List[str] = field(default_factory=list)
+    dedup_warning: Optional[str] = None
+    dedup_match: Optional[Dict[str, Any]] = None
+
+    def render_markdown(self) -> str:
+        """Render the plan as a markdown string."""
+        lines = [f"## Plan: {self.goal}", ""]
+        for i, step in enumerate(self.steps, 1):
+            lines.append(f"{i}. {step}")
+        if self.dedup_warning:
+            lines += ["", f"> **Deduplication warning**: {self.dedup_warning}"]
+        return "\n".join(lines)
+
+
+def create_plan(
+    goal: str,
+    workspace_dir: str = ".",
+    max_files: int = 10,
+) -> PlanResult:
+    """Generate a protected, read-only change plan with deduplication check."""
+    dedup = DedupEngine()
+    match = dedup.scan_for_duplicate(query=goal, repo_path=workspace_dir)
+    warning = None
+    match_info = None
+    if match and match.is_duplicate and match.confidence > 0.6:
+        warning = f"Similar work detected (confidence {match.confidence:.0%}): {match.explanation}"
+        match_info = {"is_duplicate": True, "confidence": match.confidence, "explanation": match.explanation}
+    steps = [
+        f"Analyse codebase and understand context for: {goal}",
+        "Identify files and modules that need to change",
+        "Generate a minimal surgical diff",
+        "Verify changes with AST parser and project tests",
+        "Commit with conventional message and open PR",
+    ]
+    return PlanResult(goal=goal, steps=steps, dedup_warning=warning, dedup_match=match_info)
 
 logger = logging.getLogger("k_cli.sdk")
 

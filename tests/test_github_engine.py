@@ -168,7 +168,7 @@ def test_cli_gh_commands():
         }
     ]
 
-    with patch("k_cli.github_engine.GitHubEngine._make_request", return_value=mock_issues):
+    with patch("k_cli.github.github_engine.GitHubEngine._make_request", return_value=mock_issues):
         res = runner.invoke(app, ["gh", "issues", "--json"])
         assert res.exit_code == 0
         data = json.loads(res.output)

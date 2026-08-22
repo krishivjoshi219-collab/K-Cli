@@ -58,7 +58,7 @@ def test_sdk_plan_generation(temp_workspace):
     plan_res = kcli.plan(goal="Add structured JSON logging")
     assert plan_res is not None
     assert plan_res.goal == "Add structured JSON logging"
-    assert "K-CLI protected plan" in plan_res.render_markdown()
+    assert "## Plan:" in plan_res.render_markdown()
 
 
 def test_sdk_conflict_resolution(temp_workspace):

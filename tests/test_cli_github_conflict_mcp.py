@@ -32,7 +32,7 @@ from k_cli.agents.subagents import (
     SubagentStatus,
     TaskDecomposer,
 )
-# REMOVED: from k_cli.workflow import create_plan
+from k_cli.core.sdk import create_plan
 from k_cli.git.verifier import Verifier
 from k_cli.core.llm_driver import LLMDriver
 
