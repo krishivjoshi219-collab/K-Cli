@@ -5,6 +5,9 @@ warnings.filterwarnings("ignore")
 
 __version__ = "0.4.0"
 
+from k_cli.core.credentials import CredentialsManager, SUPPORTED_KEYS
+CredentialsManager.load_all_credentials()
+
 # ── Core AI & SDK ──────────────────────────────────────────────────────────
 from k_cli.core.sdk import KCLI, PlanResult, create_plan
 from k_cli.core.models_hub import ModelBenchmarkResult, ModelHub, ModelProvider, ModelSpec

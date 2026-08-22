@@ -2420,6 +2420,97 @@ app.add_typer(release_app, name="release")
 app.add_typer(action_app, name="action")
 app.add_typer(gist_app, name="gist")
 
+# =============================================================================
+# Credentials & API Keys Management
+# =============================================================================
+keys_app = typer.Typer(help="🔑 Manage, configure, test, and store API keys for all AI model providers.")
+
+@keys_app.callback(invoke_without_command=True)
+def keys_main(ctx: typer.Context):
+    """List all API key statuses and provide quick interactive setup."""
+    if ctx.invoked_subcommand is None:
+        from k_cli.core.credentials import CredentialsManager
+        from rich.table import Table
+
+        statuses = CredentialsManager.get_key_statuses()
+        table = Table(title="🔑 K-CLI API Credentials Vault", border_style="cyan")
+        table.add_column("Provider / Key", style="bold cyan")
+        table.add_column("Environment Variable", style="dim")
+        table.add_column("Status", style="bold")
+        table.add_column("Active Key", style="dim white")
+
+        for s in statuses:
+            status_text = "[green]✔ Active[/green]" if s["active"] else "[yellow]○ Missing[/yellow]"
+            masked_val = s["masked"] or "[dim]None[/dim]"
+            table.add_row(s["label"], s["key"], status_text, masked_val)
+
+        console.print(table)
+        console.print("\n[dim]To set a key: [/dim][bold cyan]k-cli keys set <KEY_NAME> <VALUE>[/bold cyan]")
+        console.print("[dim]To test connections: [/dim][bold cyan]k-cli keys test[/bold cyan]\n")
+
+
+@keys_app.command(name="set", help="Set and store an API key (e.g. 'k-cli keys set GEMINI_API_KEY AIzaSy...').")
+def keys_set_cmd(
+    key_name: str = typer.Argument(..., help="Environment variable name (e.g. GEMINI_API_KEY, OPENAI_API_KEY, GITHUB_TOKEN)."),
+    key_val: str = typer.Argument(..., help="Secret API key value."),
+):
+    from k_cli.core.credentials import CredentialsManager
+    CredentialsManager.set_key(key_name, key_val)
+    console.print(f"[bold green]✔ Successfully saved and activated {key_name.upper()}![/bold green]")
+    console.print(f"[dim]Stored persistently in ~/.kcli/credentials.env[/dim]")
+
+
+@keys_app.command(name="test", help="Test live connectivity for all configured provider keys.")
+def keys_test_cmd():
+    from k_cli.core.credentials import CredentialsManager, SUPPORTED_KEYS
+    from rich.table import Table
+
+    table = Table(title="⚡ Provider Connectivity Test", border_style="cyan")
+    table.add_column("Provider", style="bold cyan")
+    table.add_column("Status", style="bold")
+    table.add_column("Latency / Message", style="dim")
+
+    for key_name, label, _ in SUPPORTED_KEYS:
+        ok, msg = CredentialsManager.test_key_connectivity(key_name)
+        status_text = "[green]✔ Connected[/green]" if ok else "[red]✘ Offline / Missing[/red]"
+        table.add_row(label, status_text, msg)
+
+    console.print(table)
+
+
+@keys_app.command(name="import", help="Import API keys from an existing .env or key.json file.")
+def keys_import_cmd(
+    file_path: str = typer.Argument(..., help="Path to .env or key.json file to import."),
+):
+    from k_cli.core.credentials import CredentialsManager, SUPPORTED_KEYS
+    p = Path(file_path).resolve()
+    if not p.exists():
+        console.print(f"[bold red]File not found: {file_path}[/bold red]")
+        raise typer.Exit(code=1)
+
+    imported_count = 0
+    if p.suffix == ".json":
+        data = json.loads(p.read_text(encoding="utf-8"))
+        for k, v in data.items():
+            if isinstance(v, str) and v.strip() and k.upper() in [sk[0] for sk in SUPPORTED_KEYS]:
+                CredentialsManager.set_key(k.upper(), v.strip())
+                imported_count += 1
+    else:
+        for line in p.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                k, v = k.strip().upper(), v.strip()
+                if k in [sk[0] for sk in SUPPORTED_KEYS] and v:
+                    CredentialsManager.set_key(k, v)
+                    imported_count += 1
+
+    console.print(f"[bold green]✔ Successfully imported {imported_count} key(s) from {file_path}![/bold green]")
+
+app.add_typer(keys_app, name="keys")
+app.add_typer(keys_app, name="auth")
+
+
 
 # =============================================================================
 # 10 Killer Agentic CLI Commands
