@@ -78,12 +78,46 @@ k-cli run "add retry handling" \
   --base-url "https://your-endpoint.example/v1"
 ```
 
+## Universal Python SDK
+
+K-CLI can be imported directly into Python applications as an agentic framework:
+
+```python
+from k_cli import KCLI
+
+# 1. Initialize K-CLI Agent
+with KCLI(model="deepseek-reasoner", local_fallback="qwen2.5-coder:1.5b") as kcli:
+    # 2. Multi-Model Inference across local SLMs & Cloud LLMs
+    response = kcli.generate("Write a lock-free ring buffer in C++23")
+
+    # 3. Autonomous GitHub Operations
+    kcli.github.solve_issue(issue_number=42, auto_pr=True)
+    kcli.github.create_release(tag_name="v1.0.0")
+
+    # 4. AST Merge Conflict Studio & Security Auto-Healer
+    kcli.conflicts.resolve_all()
+    kcli.security.heal_all()
+
+    # 5. Visual Mermaid Architecture Generator
+    kcli.diagrams.generate_mermaid_architecture(output_file="ARCHITECTURE.md")
+```
+
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `k-cli` | Opens the interactive shell with slash commands, streaming animations, and history. |
 | `k-cli ui` | Launches the full-screen Textual Cyber-Workstation with 3-Way Conflict Studio and PR Hub. |
+| `k-cli models list` | Lists all local SLMs (Ollama, llama.cpp, GGUF) and cloud models with context & pricing. |
+| `k-cli models test <model>` | Benchmarks model throughput (tok/s), Time-to-First-Token (TTFT), and RAM RSS. |
+| `k-cli models pull <model>` | Pulls local model weights onto machine via Ollama daemon. |
+| `k-cli models providers` | Inspects active API keys and local daemon connectivity across all providers. |
+| `k-cli gh issues` / `k-cli issue list` | Lists open issues with labels, authors, and comment counts. |
+| `k-cli gh solve <issue_num>` | Autonomously investigates an issue, generates verified fixes, commits, and opens a PR. |
+| `k-cli gh releases` / `release list` | Lists releases and published assets. |
+| `k-cli release create <tag>` | Synthesizes an AST Conventional Changelog and publishes a GitHub release. |
+| `k-cli gh actions` / `action runs` | Lists GitHub Actions CI/CD runs and step execution statuses. |
+| `k-cli gist create <file>` | Creates public or secret GitHub Gists directly from files. |
 | `k-cli conflict list` | Scans repository and lists all active 2-way and 3-way Git merge conflicts. |
 | `k-cli conflict resolve` | Automatically resolves merge conflicts with AI and runs local AST/test verification. |
 | `k-cli pr list` | Lists open/closed GitHub PRs with conflict tags, review state, and CI status pills. |

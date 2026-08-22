@@ -108,6 +108,19 @@ try:
         VulnerabilitySeverity,
         VulnerabilityType,
     )
+    from k_cli.models_hub import (
+        ModelHub,
+        ModelSpec,
+        ModelProvider,
+        ModelBenchmarkResult,
+    )
+    from k_cli.github_engine import (
+        GitHubEngine,
+        GitHubIssue,
+        GitHubRelease,
+        WorkflowRun,
+        IssueSolveResult,
+    )
 except (ModuleNotFoundError, ImportError):
     from llm_driver import LLMDriver
     from orchestrator import Orchestrator, Persona
@@ -2091,12 +2104,321 @@ def security_heal_command(
             ))
 
 
+# =============================================================================
+# Universal AI Models Hub Commands (`k-cli models`)
+# =============================================================================
+models_app = typer.Typer(help="Universal AI Model Hub, local SLMs, and benchmarks.")
+
+
+@models_app.command("list")
+def models_list(
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider (ollama, gemini, anthropic, openai, groq, etc.)."),
+    local_only: bool = typer.Option(False, "--local", "-l", help="List only local models."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Lists available local and cloud AI models in the Universal Model Hub."""
+    hub = ModelHub()
+    models = hub.list_models(provider=provider, local_only=local_only)
+
+    if json_output:
+        print(json.dumps([m.to_dict() for m in models], indent=2))
+        return
+
+    table = Table(title="🤖 K-CLI Universal Model Hub", border_style="cyan", header_style="bold magenta")
+    table.add_column("Model ID", style="bold cyan")
+    table.add_column("Provider", style="yellow")
+    table.add_column("Type", style="green")
+    table.add_column("Context", justify="right")
+    table.add_column("Status / Installed", justify="center")
+    table.add_column("Description", style="dim")
+
+    for m in models:
+        type_str = "Local SLM" if m.is_local else "Cloud LLM"
+        status_str = "[bold green]✔ Installed[/bold green]" if m.is_installed else ("[dim]Cloud Available[/dim]" if not m.is_local else "[yellow]Pull Available[/yellow]")
+        table.add_row(
+            m.id,
+            m.provider.value.upper(),
+            type_str,
+            f"{m.context_window // 1024}k",
+            status_str,
+            m.description[:45] + ("..." if len(m.description) > 45 else ""),
+        )
+
+    console.print(table)
+
+
+@models_app.command("test")
+def models_test(
+    model: str = typer.Argument(..., help="Model identifier to test (e.g. qwen2.5-coder:1.5b, gemini-2.0-flash)."),
+    prompt: str = typer.Option("Write a Python function to compute fibonacci numbers iteratively.", "--prompt", "-p"),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Benchmarks model latency, throughput (tok/s), and memory RSS consumption."""
+    hub = ModelHub()
+    console.print(f"[bold cyan]Running benchmark for model [yellow]{model}[/yellow]...[/bold cyan]")
+    res = hub.benchmark_model(model_name=model, prompt=prompt)
+
+    if json_output:
+        print(json.dumps(res.to_dict(), indent=2))
+        return
+
+    if res.success:
+        console.print(Panel(
+            f"[bold green]✔ Benchmark Succeeded[/bold green]\n\n"
+            f"• [bold]Model:[/bold] {res.model_id} ({res.provider})\n"
+            f"• [bold]Throughput:[/bold] [bold cyan]{res.tokens_per_second:.1f} tok/s[/bold cyan]\n"
+            f"• [bold]Time to First Token (TTFT):[/bold] {res.time_to_first_token:.3f}s\n"
+            f"• [bold]Total Duration:[/bold] {res.duration_seconds:.3f}s ({res.tokens_generated} tokens)\n"
+            f"• [bold]Process RAM RSS:[/bold] {res.ram_rss_mb:.1f} MB\n\n"
+            f"[dim]Output Preview:\n{res.sample_output}[/dim]",
+            title="Model Benchmark Telemetry",
+            border_style="green",
+        ))
+    else:
+        console.print(Panel(
+            f"[bold red]✘ Benchmark Failed[/bold red]\n\n[bold]Error:[/bold] {res.error_message}",
+            title="Benchmark Error",
+            border_style="red",
+        ))
+
+
+@models_app.command("pull")
+def models_pull(
+    model: str = typer.Argument(..., help="Local model name to pull via Ollama (e.g. qwen2.5-coder:7b)."),
+):
+    """Pulls a local model onto the local machine via Ollama daemon."""
+    hub = ModelHub()
+    console.print(f"[bold cyan]Pulling local model [yellow]{model}[/yellow]...[/bold cyan]")
+    success = hub.pull_model(model_name=model, stream_callback=lambda msg: console.print(msg, end=""))
+    if success:
+        console.print(f"\n[bold green]✔ Model {model} pulled and ready for local inference.[/bold green]")
+    else:
+        console.print(f"\n[bold red]✘ Failed pulling model {model}. Ensure Ollama daemon is running at http://localhost:11434[/bold red]")
+
+
+@models_app.command("providers")
+def models_providers(
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Inspects configuration and active API credentials across all supported providers."""
+    hub = ModelHub()
+    statuses = {}
+    for p in ModelProvider:
+        statuses[p.value] = hub.is_provider_configured(p)
+
+    if json_output:
+        print(json.dumps(statuses, indent=2))
+        return
+
+    table = Table(title="⚡ AI Model Provider Status", border_style="cyan", header_style="bold magenta")
+    table.add_column("Provider", style="bold yellow")
+    table.add_column("Type", style="cyan")
+    table.add_column("Status", justify="center")
+    table.add_column("Configuration Requirement", style="dim")
+
+    for p in ModelProvider:
+        is_ready = statuses[p.value]
+        status_str = "[bold green]✔ Ready[/bold green]" if is_ready else "[dim red]Not Configured[/dim red]"
+        prov_type = "Local SLM" if p in (ModelProvider.OLLAMA, ModelProvider.LLAMACPP, ModelProvider.NATIVE) else "Cloud API"
+        req_str = "http://localhost:11434" if p == ModelProvider.OLLAMA else (f"export {p.value.upper()}_API_KEY" if p != ModelProvider.MOCK else "None (Built-in)")
+        table.add_row(p.value.upper(), prov_type, status_str, req_str)
+
+    console.print(table)
+
+
+# =============================================================================
+# GitHub Ecosystem Commands (`k-cli gh` / `k-cli issue` / `k-cli release`)
+# =============================================================================
+gh_app = typer.Typer(help="Complete GitHub ecosystem & autonomous issue solver.")
+issue_app = typer.Typer(help="Manage and autonomously solve GitHub issues.")
+release_app = typer.Typer(help="Manage GitHub releases & automated changelogs.")
+action_app = typer.Typer(help="Inspect GitHub Actions CI/CD runs & logs.")
+gist_app = typer.Typer(help="Create and manage GitHub Gists.")
+
+
+@issue_app.command("list")
+@gh_app.command("issues")
+def gh_issue_list(
+    state: str = typer.Option("open", "--state", "-s", help="Issue state (open, closed, all)."),
+    limit: int = typer.Option(30, "--limit", "-n", help="Max issues to return."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Lists repository issues."""
+    engine = GitHubEngine()
+    issues = engine.list_issues(state=state, limit=limit)
+
+    if json_output:
+        print(json.dumps([i.to_dict() for i in issues], indent=2))
+        return
+
+    table = Table(title=f"🐙 GitHub Issues ({engine.owner}/{engine.repo})", border_style="cyan", header_style="bold magenta")
+    table.add_column("#", justify="right", style="bold cyan")
+    table.add_column("State", justify="center")
+    table.add_column("Title", style="white")
+    table.add_column("Author", style="dim yellow")
+    table.add_column("Labels", style="dim green")
+    table.add_column("Comments", justify="right")
+
+    for i in issues:
+        state_badge = "[bold green]open[/bold green]" if i.state == "open" else "[dim red]closed[/dim red]"
+        table.add_row(
+            str(i.number),
+            state_badge,
+            i.title[:50],
+            f"@{i.author}",
+            ", ".join(i.labels[:3]),
+            str(i.comments_count),
+        )
+    console.print(table)
+
+
+@issue_app.command("solve")
+@gh_app.command("solve")
+def gh_issue_solve(
+    issue_number: int = typer.Argument(..., help="GitHub issue number to autonomously solve."),
+    auto_pr: bool = typer.Option(True, "--auto-pr/--no-pr", help="Automatically create Pull Request once tests pass."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Autonomously investigates, writes surgical fixes, verifies tests, and opens PR for an issue."""
+    engine = GitHubEngine()
+    console.print(f"[bold cyan]Autonomously solving GitHub issue [yellow]#{issue_number}[/yellow]...[/bold cyan]")
+    res = engine.solve_issue(issue_number=issue_number, auto_pr=auto_pr)
+
+    if json_output:
+        print(json.dumps(res.to_dict(), indent=2))
+        return
+
+    if res.success:
+        console.print(Panel(
+            f"[bold green]✔ Successfully Solved Issue #{issue_number}[/bold green]\n\n"
+            f"• [bold]Branch Created:[/bold] [cyan]{res.branch_name}[/cyan]\n"
+            + (f"• [bold]Pull Request Opened:[/bold] [link={res.pr_url}]{res.pr_url}[/link]\n" if res.pr_url else "") +
+            f"• [bold]Status:[/bold] {res.summary}",
+            title=f"Issue #{issue_number} Resolved",
+            border_style="green",
+        ))
+    else:
+        console.print(Panel(
+            f"[bold red]✘ Failed solving issue #{issue_number}[/bold red]\n\n[bold]Reason:[/bold] {res.error_message}",
+            title=f"Issue #{issue_number} Unresolved",
+            border_style="red",
+        ))
+
+
+@release_app.command("list")
+@gh_app.command("releases")
+def gh_release_list(
+    limit: int = typer.Option(10, "--limit", "-n", help="Max releases to return."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Lists repository releases."""
+    engine = GitHubEngine()
+    releases = engine.list_releases(limit=limit)
+
+    if json_output:
+        print(json.dumps([r.to_dict() for r in releases], indent=2))
+        return
+
+    table = Table(title=f"🚀 GitHub Releases ({engine.owner}/{engine.repo})", border_style="cyan", header_style="bold magenta")
+    table.add_column("Tag", style="bold cyan")
+    table.add_column("Release Name", style="white")
+    table.add_column("Type", justify="center")
+    table.add_column("Published", style="dim")
+    table.add_column("Assets", justify="right")
+
+    for r in releases:
+        type_badge = "[yellow]pre-release[/yellow]" if r.prerelease else ("[dim]draft[/dim]" if r.draft else "[green]release[/green]")
+        table.add_row(r.tag_name, r.name, type_badge, r.published_at[:10], str(len(r.assets)))
+    console.print(table)
+
+
+@release_app.command("create")
+def gh_release_create(
+    tag: str = typer.Argument(..., help="Release tag name (e.g. v1.0.0)."),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Release title name."),
+    draft: bool = typer.Option(False, "--draft", help="Create as draft release."),
+    prerelease: bool = typer.Option(False, "--prerelease", help="Create as prerelease."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Creates a new GitHub release with automatically generated AST Conventional Changelog."""
+    engine = GitHubEngine()
+    console.print(f"[bold cyan]Synthesizing changelog and creating release [yellow]{tag}[/yellow]...[/bold cyan]")
+    rel = engine.create_release(tag_name=tag, name=name, draft=draft, prerelease=prerelease)
+
+    if json_output:
+        print(json.dumps(rel.to_dict(), indent=2))
+        return
+
+    console.print(Panel(
+        f"[bold green]✔ Created Release {rel.tag_name}[/bold green]\n\n"
+        f"• [bold]Title:[/bold] {rel.name}\n"
+        f"• [bold]URL:[/bold] [link={rel.html_url}]{rel.html_url}[/link]\n\n"
+        f"[dim]Changelog Preview:\n{rel.body[:300]}...[/dim]",
+        title=f"Release {tag} Published",
+        border_style="green",
+    ))
+
+
+@action_app.command("runs")
+@gh_app.command("actions")
+def gh_action_runs(
+    limit: int = typer.Option(15, "--limit", "-n", help="Max runs to return."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Lists GitHub Actions CI/CD workflow runs."""
+    engine = GitHubEngine()
+    runs = engine.list_workflow_runs(limit=limit)
+
+    if json_output:
+        print(json.dumps([r.to_dict() for r in runs], indent=2))
+        return
+
+    table = Table(title=f"⚡ GitHub Actions CI/CD Runs ({engine.owner}/{engine.repo})", border_style="cyan", header_style="bold magenta")
+    table.add_column("Run ID", style="bold cyan")
+    table.add_column("Workflow", style="white")
+    table.add_column("Branch", style="yellow")
+    table.add_column("Status", justify="center")
+    table.add_column("Conclusion", justify="center")
+    table.add_column("Created", style="dim")
+
+    for r in runs:
+        conclusion_badge = "[bold green]success[/bold green]" if r.conclusion == "success" else (
+            "[bold red]failure[/bold red]" if r.conclusion == "failure" else f"[dim]{r.conclusion or 'running'}[/dim]"
+        )
+        table.add_row(str(r.id), r.name, r.head_branch, r.status, conclusion_badge, r.created_at[:10])
+    console.print(table)
+
+
+@gist_app.command("create")
+def gh_gist_create(
+    file_path: str = typer.Argument(..., help="File path to publish as Gist."),
+    description: str = typer.Option("Created via K-CLI", "--description", "-d"),
+    public: bool = typer.Option(False, "--public", help="Make gist public."),
+):
+    """Creates a GitHub Gist snippet."""
+    engine = GitHubEngine()
+    p = Path(file_path).resolve()
+    if not p.exists():
+        console.print(f"[bold red]File not found: {file_path}[/bold red]")
+        return
+
+    content = p.read_text(encoding="utf-8", errors="replace")
+    url = engine.create_gist(files={p.name: content}, description=description, public=public)
+    console.print(f"[bold green]✔ Gist created successfully:[/bold green] [link={url}]{url}[/link]")
+
+
 # Mount sub-applications onto root CLI app
 app.add_typer(conflict_app, name="conflict")
 app.add_typer(pr_app, name="pr")
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(dedup_app, name="dedup")
 app.add_typer(security_app, name="security")
+app.add_typer(models_app, name="models")
+app.add_typer(gh_app, name="gh")
+app.add_typer(issue_app, name="issue")
+app.add_typer(release_app, name="release")
+app.add_typer(action_app, name="action")
+app.add_typer(gist_app, name="gist")
 
 
 def interactive_mode(model: str = "qwen2.5-coder:1.5b", mock: bool = False):

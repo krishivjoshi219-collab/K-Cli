@@ -3,7 +3,22 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
+
+from k_cli.sdk import KCLI
+from k_cli.models_hub import (
+    ModelBenchmarkResult,
+    ModelHub,
+    ModelProvider,
+    ModelSpec,
+)
+from k_cli.github_engine import (
+    GitHubEngine,
+    GitHubIssue,
+    GitHubRelease,
+    IssueSolveResult,
+    WorkflowRun,
+)
 
 from k_cli.conflict_resolver import (
     ConflictBlock,
@@ -46,7 +61,6 @@ from k_cli.security_healer import (
     VulnerabilitySeverity,
     VulnerabilityType,
 )
-
 from k_cli.github_client import (
     CIStatus,
     GitHubAPIError,
@@ -67,6 +81,16 @@ from k_cli.mcp_client import (
 )
 
 __all__ = [
+    "KCLI",
+    "ModelHub",
+    "ModelSpec",
+    "ModelProvider",
+    "ModelBenchmarkResult",
+    "GitHubEngine",
+    "GitHubIssue",
+    "GitHubRelease",
+    "WorkflowRun",
+    "IssueSolveResult",
     "ConflictBlock",
     "ConflictResolution",
     "ConflictResolver",
