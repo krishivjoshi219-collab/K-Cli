@@ -1,5 +1,5 @@
 """
-test_tui_app_screens.py - Unit Tests for KCliCyberWorkstation, Widgets & Modals
+test_tui_app_screens.py - Unit & Modal Tests for Claude Code / AGY Style KCliCyberWorkstation
 Project Bankai Engine v0.4.0
 """
 
@@ -10,9 +10,9 @@ import pytest
 from k_cli.tui_app import (
     KCliCyberWorkstation,
     CredentialsVaultModal,
-    ConflictStudioWidget,
-    GitHubCommandCenterWidget,
-    ModelHubWidget,
+    ConflictStudioModal,
+    GitHubCenterModal,
+    ModelHubModal,
 )
 
 
@@ -33,31 +33,28 @@ def test_credentials_vault_modal_structure_and_labels():
         assert modal._get_status_label("GEMINI_API_KEY") == "✔ Active"
 
 
-def test_conflict_studio_widget_methods():
-    """Verifies ConflictStudioWidget scanning and actions."""
-    widget = ConflictStudioWidget()
-    with patch("k_cli.tui_app.ConflictResolver.find_conflicts", return_value=[]):
-        widget.refresh_conflicts = MagicMock()
-        widget.on_accept = MagicMock()
-        widget.on_resolve_all = MagicMock()
-
-        assert callable(widget.refresh_conflicts)
-        assert callable(widget.on_accept)
+def test_conflict_studio_modal():
+    """Verifies ConflictStudioModal initialization and method signatures."""
+    modal = ConflictStudioModal()
+    assert hasattr(modal, "on_resolve")
+    assert hasattr(modal, "on_accept")
+    assert hasattr(modal, "on_verify")
+    assert hasattr(modal, "on_close")
 
 
-def test_github_command_center_widget():
-    """Verifies GitHubCommandCenterWidget methods."""
-    widget = GitHubCommandCenterWidget()
-    assert hasattr(widget, "refresh_github_items")
-    assert hasattr(widget, "on_solve_btn")
-    assert hasattr(widget, "on_review_btn")
-    assert hasattr(widget, "on_release_btn")
+def test_github_center_modal():
+    """Verifies GitHubCenterModal methods."""
+    modal = GitHubCenterModal()
+    assert hasattr(modal, "on_solve")
+    assert hasattr(modal, "on_review")
+    assert hasattr(modal, "on_release")
+    assert hasattr(modal, "on_close")
 
 
-def test_model_hub_widget():
-    """Verifies ModelHubWidget methods."""
-    widget = ModelHubWidget()
-    assert hasattr(widget, "refresh_models")
-    assert hasattr(widget, "on_bench_btn")
-    assert hasattr(widget, "on_pull_btn")
-    assert hasattr(widget, "on_switch_btn")
+def test_model_hub_modal():
+    """Verifies ModelHubModal methods."""
+    modal = ModelHubModal()
+    assert hasattr(modal, "on_bench")
+    assert hasattr(modal, "on_pull")
+    assert hasattr(modal, "on_select")
+    assert hasattr(modal, "on_close")
