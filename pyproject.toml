@@ -45,6 +45,13 @@ py-modules = [
     "security",
     "feature",
     "rules",
+    "conflict_resolver",
+    "github_client",
+    "dedup_engine",
+    "incident_triage",
+    "diagram_generator",
+    "smart_git",
+    "security_healer",
 ]
 
 [tool.setuptools.exclude-package-data]

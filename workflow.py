@@ -11,6 +11,15 @@ try:
 except ModuleNotFoundError:
     from repo_map import RepoMap
 
+try:
+    from k_cli.dedup_engine import DedupEngine, DedupMatch
+except ModuleNotFoundError:
+    try:
+        from dedup_engine import DedupEngine, DedupMatch
+    except ModuleNotFoundError:
+        DedupEngine = None  # type: ignore
+        DedupMatch = None  # type: ignore
+
 
 IGNORED_DIRS = {".git", ".venv", "venv", "k_cli_env", "node_modules", "__pycache__", ".pytest_cache", "data"}
 
@@ -23,6 +32,8 @@ class PlanResult:
     detected_tools: List[str]
     repo_map: str
     project_guidance: str = ""
+    dedup_warning: Optional[str] = None
+    dedup_match: Optional[Any] = None
 
     def render_markdown(self) -> str:
         files = "\n".join(f"- `{path}`" for path in self.relevant_files) or "- No source files matched yet."
@@ -38,10 +49,14 @@ class PlanResult:
             if self.project_guidance
             else "No project guidance file was supplied."
         )
+        warning_section = ""
+        if self.dedup_warning:
+            warning_section = f"## Deduplication warning\n> [!WARNING]\n> {self.dedup_warning}\n\n"
         return (
             f"# K-CLI protected plan\n\n"
             f"**Goal:** {self.goal}\n\n"
             f"**Workspace:** `{self.workspace}`\n\n"
+            f"{warning_section}"
             f"## Relevant files\n{files}\n\n"
             f"## Detected verification\n{tools}\n\n"
             f"## Proposed steps\n{step_text}\n\n"
@@ -82,4 +97,25 @@ def create_plan(goal: str, workspace_dir: str | Path = ".", max_files: int = 10)
     if not candidates:
         candidates = [p.relative_to(workspace).as_posix() for p in workspace.glob("*.py")][:max_files]
     repo_map = RepoMap(root_dir=str(workspace)).get_repo_map(max_tokens=260, focus_files=candidates)
-    return PlanResult(goal=goal, workspace=workspace, relevant_files=candidates, detected_tools=_detected_tools(workspace), repo_map=repo_map)
+
+    dedup_warning = None
+    dedup_match = None
+    if DedupEngine is not None:
+        try:
+            engine = DedupEngine(repo_path=str(workspace))
+            d_match = engine.scan_for_duplicate(query=goal)
+            if d_match and d_match.is_duplicate:
+                dedup_match = d_match
+                dedup_warning = f"Task may already be completed: {d_match.explanation}"
+        except Exception:
+            pass
+
+    return PlanResult(
+        goal=goal,
+        workspace=workspace,
+        relevant_files=candidates,
+        detected_tools=_detected_tools(workspace),
+        repo_map=repo_map,
+        dedup_warning=dedup_warning,
+        dedup_match=dedup_match,
+    )

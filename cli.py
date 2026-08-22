@@ -14,6 +14,7 @@ warnings.filterwarnings("ignore")
 import difflib
 import json
 import os
+import shlex
 import sys
 import psutil
 from pathlib import Path
@@ -60,6 +61,53 @@ try:
         MODEL_PRESETS,
         get_persona_style,
     )
+    from k_cli.mcp_client import (
+        MCPManager,
+        MCPClient,
+        MCPServerConfig,
+        mcp_list_servers,
+        mcp_add_server,
+        mcp_remove_server,
+        mcp_test_connection,
+    )
+    from k_cli.conflict_resolver import (
+        ConflictResolver,
+        ConflictBlock,
+        ConflictResolution,
+        FileResolutionResult,
+        ConflictSummary,
+    )
+    from k_cli.github_client import (
+        GitHubClient,
+        MockGitHubClient,
+        PRLifecycleManager,
+        PullRequest,
+        PRReviewResult,
+        PRFixResult,
+        CIStatus,
+    )
+    from k_cli.dedup_engine import (
+        DedupEngine,
+        DedupMatch,
+        CommitRecord,
+        SymbolRecord,
+    )
+    from k_cli.smart_git import (
+        SmartGitEngine,
+        SmartCommitProposal,
+        PRDescriptionProposal,
+        AtomicCommitGroup,
+        FileChangeAnalysis,
+        CommitType,
+    )
+    from k_cli.security_healer import (
+        SecurityHealer,
+        SecurityScanReport,
+        VulnerabilityFinding,
+        VulnerabilityHealResult,
+        VulnerabilitySeverity,
+        VulnerabilityType,
+    )
 except (ModuleNotFoundError, ImportError):
     from llm_driver import LLMDriver
     from orchestrator import Orchestrator, Persona
@@ -101,6 +149,75 @@ except (ModuleNotFoundError, ImportError):
         MODEL_PRESETS,
         get_persona_style,
     )
+    try:
+        from mcp_client import (
+            MCPManager,
+            MCPClient,
+            MCPServerConfig,
+            mcp_list_servers,
+            mcp_add_server,
+            mcp_remove_server,
+            mcp_test_connection,
+        )
+    except (ModuleNotFoundError, ImportError):
+        MCPManager = None  # type: ignore
+    try:
+        from conflict_resolver import (
+            ConflictResolver,
+            ConflictBlock,
+            ConflictResolution,
+            FileResolutionResult,
+            ConflictSummary,
+        )
+    except (ModuleNotFoundError, ImportError):
+        ConflictResolver = None  # type: ignore
+    try:
+        from github_client import (
+            GitHubClient,
+            MockGitHubClient,
+            PRLifecycleManager,
+            PullRequest,
+            PRReviewResult,
+            PRFixResult,
+            CIStatus,
+        )
+    except (ModuleNotFoundError, ImportError):
+        GitHubClient = None  # type: ignore
+        PRLifecycleManager = None  # type: ignore
+    try:
+        from dedup_engine import (
+            DedupEngine,
+            DedupMatch,
+            CommitRecord,
+            SymbolRecord,
+        )
+    except (ModuleNotFoundError, ImportError):
+        DedupEngine = None  # type: ignore
+    try:
+        from smart_git import (
+            SmartGitEngine,
+            SmartCommitProposal,
+            PRDescriptionProposal,
+            AtomicCommitGroup,
+            FileChangeAnalysis,
+            CommitType,
+        )
+    except (ModuleNotFoundError, ImportError):
+        SmartGitEngine = None  # type: ignore
+        SmartCommitProposal = None  # type: ignore
+        PRDescriptionProposal = None  # type: ignore
+    try:
+        from security_healer import (
+            SecurityHealer,
+            SecurityScanReport,
+            VulnerabilityFinding,
+            VulnerabilityHealResult,
+            VulnerabilitySeverity,
+            VulnerabilityType,
+        )
+    except (ModuleNotFoundError, ImportError):
+        SecurityHealer = None  # type: ignore
+        SecurityScanReport = None  # type: ignore
 
 app = typer.Typer(
     name="k-cli",
@@ -1128,6 +1245,858 @@ def pull_cmd(
         force=force,
         mock=mock,
     )
+
+
+# ==============================================================================
+# Conflict Resolution Commands (k-cli conflict ...)
+# ==============================================================================
+
+conflict_app = typer.Typer(
+    name="conflict",
+    help="Detect, inspect, and AI-resolve git merge conflicts.",
+    add_completion=False,
+)
+
+
+@conflict_app.command(name="list", help="Detect and show conflicts in repo.")
+def conflict_list_cmd(
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository or workspace root directory."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    resolver = ConflictResolver() if ConflictResolver else None
+    if resolver is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "ConflictResolver module not available", "conflicts": []}))
+        else:
+            console.print("[bold red]Error:[/bold red] ConflictResolver module is not available.")
+        raise typer.Exit(code=1)
+
+    conflicts = resolver.find_conflicts(repo_path=str(target_dir))
+
+    if json_output:
+        out_data = {
+            "repo_path": str(target_dir),
+            "total_conflicts": len(conflicts),
+            "conflicted_files_count": len({c.file_path for c in conflicts if c.file_path}),
+            "conflicts": [c.to_dict() for c in conflicts],
+        }
+        typer.echo(json.dumps(out_data, indent=2))
+        return
+
+    if not conflicts:
+        console.print("[bold green]✔ Clean: No git merge conflicts detected in workspace.[/bold green]")
+        return
+
+    table = Table(title=f"Git Merge Conflicts Detected ({len(conflicts)})", box=None)
+    table.add_column("File", style="bold cyan")
+    table.add_column("Lines", style="magenta")
+    table.add_column("Type", style="yellow")
+    table.add_column("Scope / Function", style="white")
+    table.add_column("Ours Label", style="green")
+    table.add_column("Theirs Label", style="red")
+
+    for c in conflicts:
+        rel_p = str(Path(c.file_path).relative_to(target_dir)) if c.file_path.startswith(str(target_dir)) else c.file_path
+        mtype = "3-Way (Diff3)" if c.is_3way() else "2-Way"
+        table.add_row(
+            rel_p,
+            f"L{c.start_line}-{c.end_line}",
+            mtype,
+            c.scope_name or "(top-level)",
+            c.ours_label,
+            c.theirs_label,
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Run [bold]k-cli conflict resolve --file <path>[/bold] or [bold]k-cli conflict resolve[/bold] to resolve.[/dim]\n")
+
+
+@conflict_app.command(name="resolve", help="AI 3-way merge with verification.")
+def conflict_resolve_cmd(
+    file: Optional[str] = typer.Option(None, "--file", "-f", help="Specific conflicted file path to resolve."),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="LLM model identifier to use."),
+    auto_accept: bool = typer.Option(False, "--auto-accept", "-y", help="Automatically accept and stage resolved files."),
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository workspace root directory."),
+    mock: bool = typer.Option(False, "--mock", help="Force mock execution for testing."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    resolver = ConflictResolver(default_model=model) if ConflictResolver else None
+    if resolver is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "ConflictResolver module not available", "success": False}))
+        else:
+            console.print("[bold red]Error:[/bold red] ConflictResolver module is not available.")
+        raise typer.Exit(code=1)
+
+    is_mock = mock or os.getenv("KCLI_MOCK_MODE", "").lower() in ("true", "1") or ("PYTEST_CURRENT_TEST" in os.environ and not os.getenv("K_CLI_REAL_LLM"))
+    driver = LLMDriver(model_name=model or "qwen2.5-coder:1.5b", mock_mode=is_mock)
+    verifier = Verifier()
+
+    if file:
+        target_file = Path(file).resolve() if not Path(file).is_absolute() else Path(file)
+        if not target_file.exists():
+            if json_output:
+                typer.echo(json.dumps({"error": f"File '{file}' not found", "success": False}))
+            else:
+                console.print(f"[bold red]Error:[/bold red] Conflicted file '{file}' not found.")
+            raise typer.Exit(code=1)
+
+        res = resolver.resolve_file(
+            file_path=str(target_file),
+            llm_driver=driver,
+            verifier=verifier,
+            auto_stage=auto_accept,
+        )
+
+        if json_output:
+            typer.echo(json.dumps(res.to_dict(), indent=2))
+            return
+
+        if res.success:
+            console.print(f"[bold green]✔ Successfully resolved {res.resolved_conflicts}/{res.total_conflicts} conflict(s) in {file}.[/bold green]")
+            if res.staged:
+                console.print("[dim]✔ Automatically staged resolved file with git add.[/dim]")
+        else:
+            console.print(f"[bold red]✘ Failed to resolve conflicts in {file}: {res.error_message}[/bold red]")
+            raise typer.Exit(code=1)
+    else:
+        summary = resolver.resolve_all_conflicts(
+            repo_path=str(target_dir),
+            llm_driver=driver,
+            verifier=verifier,
+            auto_stage=auto_accept,
+        )
+
+        if json_output:
+            typer.echo(json.dumps(summary.to_dict(), indent=2))
+            return
+
+        if summary.total_files == 0:
+            console.print("[bold green]✔ No merge conflicts detected in workspace.[/bold green]")
+            return
+
+        console.print(f"[bold cyan]Conflict Resolution Summary:[/bold cyan] {summary.resolved_files}/{summary.total_files} files resolved successfully.")
+        for fpath, f_res in summary.file_results.items():
+            glyph = "[bold green]✔[/bold green]" if f_res.success else "[bold red]✘[/bold red]"
+            console.print(f"  {glyph} {os.path.basename(fpath)}: {f_res.resolved_conflicts}/{f_res.total_conflicts} resolved")
+
+        if not summary.success:
+            raise typer.Exit(code=1)
+
+
+# ==============================================================================
+# Pull Request Lifecycle Commands (k-cli pr ...)
+# ==============================================================================
+
+pr_app = typer.Typer(
+    name="pr",
+    help="Inspect, review, fix, and merge GitHub Pull Requests.",
+    add_completion=False,
+)
+
+
+@pr_app.command(name="list", help="List GitHub pull requests.")
+def pr_list_cmd(
+    state: str = typer.Option("open", "--state", "-s", help="Filter PRs by state: open, closed, all."),
+    limit: int = typer.Option(30, "--limit", "-l", help="Max number of PRs to retrieve."),
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository workspace directory."),
+    mock: bool = typer.Option(False, "--mock", help="Use mock GitHub client for offline testing."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    is_mock = mock or os.getenv("KCLI_MOCK_GITHUB", "0").lower() in ("1", "true") or ("PYTEST_CURRENT_TEST" in os.environ and not os.getenv("GITHUB_TOKEN"))
+    client = GitHubClient(repo_dir=target_dir, mock_mode=is_mock) if GitHubClient else None
+
+    if client is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "GitHubClient module not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] GitHubClient module is not available.")
+        raise typer.Exit(code=1)
+
+    prs = client.list_pull_requests(state=state, limit=limit)
+
+    if json_output:
+        typer.echo(json.dumps([pr.to_dict() for pr in prs], indent=2))
+        return
+
+    if not prs:
+        console.print(f"[yellow]No {state} pull requests found.[/yellow]")
+        return
+
+    table = Table(title=f"Pull Requests ({client.owner}/{client.repo}) [{state}]", box=None)
+    table.add_column("#", style="bold cyan", justify="right")
+    table.add_column("Title", style="bold white")
+    table.add_column("Author", style="magenta")
+    table.add_column("Branch", style="green")
+    table.add_column("State", style="yellow")
+    table.add_column("Created", style="dim")
+
+    for pr in prs:
+        state_style = "green" if pr.state == "open" else ("magenta" if pr.merged else "red")
+        table.add_row(
+            str(pr.number),
+            pr.title,
+            pr.author or "unknown",
+            f"{pr.head_branch} -> {pr.base_branch}",
+            f"[{state_style}]{pr.state.upper()}[/{state_style}]",
+            pr.created_at[:10] if pr.created_at else "",
+        )
+
+    console.print(table)
+
+
+@pr_app.command(name="view", help="View pull request details and diff.")
+def pr_view_cmd(
+    pr_num: int = typer.Argument(..., help="Pull request number."),
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository workspace directory."),
+    mock: bool = typer.Option(False, "--mock", help="Use mock GitHub client for offline testing."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    is_mock = mock or os.getenv("KCLI_MOCK_GITHUB", "0").lower() in ("1", "true") or ("PYTEST_CURRENT_TEST" in os.environ and not os.getenv("GITHUB_TOKEN"))
+    client = GitHubClient(repo_dir=target_dir, mock_mode=is_mock) if GitHubClient else None
+
+    if client is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "GitHubClient module not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] GitHubClient module is not available.")
+        raise typer.Exit(code=1)
+
+    pr = client.get_pull_request(pr_num)
+    diff = client.get_pr_diff(pr_num)
+    ci = client.get_ci_status(pr.head_sha or pr.head_branch)
+
+    if json_output:
+        data = pr.to_dict()
+        data["diff"] = diff
+        data["ci_status"] = ci.to_dict()
+        typer.echo(json.dumps(data, indent=2))
+        return
+
+    status_style = "bold green" if pr.state == "open" else ("bold magenta" if pr.merged else "bold red")
+    ci_text = "[bold green]✔ Passing[/bold green]" if ci.is_passing else f"[bold red]✘ Failing ({ci.failed_count} failed)[/bold red]"
+
+    panel_content = (
+        f"[bold white]{pr.title}[/bold white]\n\n"
+        f"• [cyan]Author:[/cyan] {pr.author}   • [cyan]State:[/cyan] [{status_style}]{pr.state.upper()}[/{status_style}]   • [cyan]CI:[/cyan] {ci_text}\n"
+        f"• [cyan]Branches:[/cyan] [green]{pr.head_branch}[/green] -> [blue]{pr.base_branch}[/blue] (HEAD: {pr.head_sha[:8] if pr.head_sha else 'N/A'})\n\n"
+        f"[bold]Description:[/bold]\n{pr.body or '(No description provided)'}"
+    )
+    console.print(Panel(panel_content, title=f"Pull Request #{pr.number}", border_style="cyan"))
+
+    if diff.strip():
+        console.print("\n[bold cyan]Diff Preview:[/bold cyan]")
+        diff_lines = diff.splitlines()
+        diff_preview = "\n".join(diff_lines[:30])
+        if len(diff_lines) > 30:
+            diff_preview += f"\n... ({len(diff_lines) - 30} more diff lines)"
+        console.print(Syntax(diff_preview, "diff", theme="monokai", line_numbers=True))
+
+
+@pr_app.command(name="review", help="Perform compiler-grade AI code review on a pull request.")
+def pr_review_cmd(
+    pr_num: int = typer.Argument(..., help="Pull request number."),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="LLM model identifier to use."),
+    post_comment: bool = typer.Option(False, "--post-comment", help="Automatically post review comment to GitHub PR."),
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository workspace directory."),
+    mock: bool = typer.Option(False, "--mock", help="Use mock GitHub client for offline testing."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    is_mock = mock or os.getenv("KCLI_MOCK_GITHUB", "0").lower() in ("1", "true") or ("PYTEST_CURRENT_TEST" in os.environ and not os.getenv("GITHUB_TOKEN"))
+    client = GitHubClient(repo_dir=target_dir, mock_mode=is_mock) if GitHubClient else None
+    mgr = PRLifecycleManager(client=client, repo_dir=target_dir) if PRLifecycleManager else None
+
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "PRLifecycleManager module not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] PRLifecycleManager module is not available.")
+        raise typer.Exit(code=1)
+
+    driver = LLMDriver(model_name=model or "qwen2.5-coder:1.5b", mock_mode=is_mock)
+    review = mgr.review_pr(
+        pr_number=pr_num,
+        llm_driver=driver,
+        model=model,
+        post_comment=post_comment,
+    )
+
+    if json_output:
+        typer.echo(json.dumps(review.to_dict(), indent=2))
+        return
+
+    verdict_color = "green" if review.verdict == "APPROVE" else ("red" if review.verdict == "REQUEST_CHANGES" else "yellow")
+    console.print(Panel(
+        f"[bold {verdict_color}]VERDICT: {review.verdict}[/bold {verdict_color}]\n\n"
+        f"[bold]Summary:[/bold] {review.summary}\n\n"
+        f"[bold red]Bugs Identified ({len(review.bugs)}):[/bold red]\n" + ("\n".join(f"  • {b}" for b in review.bugs) if review.bugs else "  None detected.") + "\n\n"
+        f"[bold yellow]Security Issues ({len(review.security_issues)}):[/bold yellow]\n" + ("\n".join(f"  • {s}" for s in review.security_issues) if review.security_issues else "  None detected.") + "\n\n"
+        f"[bold cyan]Performance Notes ({len(review.performance_notes)}):[/bold cyan]\n" + ("\n".join(f"  • {p}" for p in review.performance_notes) if review.performance_notes else "  None detected."),
+        title=f"AI Code Review: PR #{pr_num}",
+        border_style=verdict_color,
+    ))
+    if post_comment:
+        console.print("[bold green]✔ Posted review comment to GitHub PR.[/bold green]")
+
+
+@pr_app.command(name="fix", help="Automatically generate surgical fixes for PR issues, verify tests, and commit.")
+def pr_fix_cmd(
+    pr_num: int = typer.Argument(..., help="Pull request number."),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="LLM model identifier to use."),
+    auto_push: bool = typer.Option(False, "--auto-push", help="Automatically push fixes to remote branch on passing verification."),
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository workspace directory."),
+    mock: bool = typer.Option(False, "--mock", help="Use mock GitHub client for offline testing."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    is_mock = mock or os.getenv("KCLI_MOCK_GITHUB", "0").lower() in ("1", "true") or ("PYTEST_CURRENT_TEST" in os.environ and not os.getenv("GITHUB_TOKEN"))
+    client = GitHubClient(repo_dir=target_dir, mock_mode=is_mock) if GitHubClient else None
+    mgr = PRLifecycleManager(client=client, repo_dir=target_dir) if PRLifecycleManager else None
+
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "PRLifecycleManager module not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] PRLifecycleManager module is not available.")
+        raise typer.Exit(code=1)
+
+    driver = LLMDriver(model_name=model or "qwen2.5-coder:1.5b", mock_mode=is_mock)
+    res = mgr.fix_pr(
+        pr_number=pr_num,
+        llm_driver=driver,
+        auto_push=auto_push,
+    )
+
+    if json_output:
+        typer.echo(json.dumps(res.to_dict(), indent=2))
+        return
+
+    if res.success:
+        console.print(f"[bold green]✔ Fixed PR #{pr_num} successfully![/bold green]")
+        console.print(f"  • Branch: {res.branch}")
+        console.print(f"  • Files modified: {', '.join(res.fixes_applied) if res.fixes_applied else 'None'}")
+        if res.commit_sha:
+            console.print(f"  • Commit: {res.commit_sha}")
+        if res.pushed:
+            console.print("  • Remote push: [bold green]✔ Pushed to origin[/bold green]")
+    else:
+        console.print(f"[bold red]✘ Failed to fix PR #{pr_num}: {res.error_message}[/bold red]")
+        raise typer.Exit(code=1)
+
+
+@pr_app.command(name="merge", help="Merge pull request upon CI and verification checks passing.")
+def pr_merge_cmd(
+    pr_num: int = typer.Argument(..., help="Pull request number."),
+    method: str = typer.Option("squash", "--method", help="Merge strategy: squash, rebase, merge."),
+    require_ci: bool = typer.Option(True, "--require-ci/--no-require-ci", help="Require CI check runs to pass before merging."),
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository workspace directory."),
+    mock: bool = typer.Option(False, "--mock", help="Use mock GitHub client for offline testing."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    is_mock = mock or os.getenv("KCLI_MOCK_GITHUB", "0").lower() in ("1", "true") or ("PYTEST_CURRENT_TEST" in os.environ and not os.getenv("GITHUB_TOKEN"))
+    client = GitHubClient(repo_dir=target_dir, mock_mode=is_mock) if GitHubClient else None
+    mgr = PRLifecycleManager(client=client, repo_dir=target_dir) if PRLifecycleManager else None
+
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "PRLifecycleManager module not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] PRLifecycleManager module is not available.")
+        raise typer.Exit(code=1)
+
+    ok = mgr.auto_merge_pr(
+        pr_number=pr_num,
+        require_ci_pass=require_ci,
+        merge_method=method,
+    )
+
+    if json_output:
+        typer.echo(json.dumps({"pr_number": pr_num, "merged": ok, "method": method}, indent=2))
+        return
+
+    if ok:
+        console.print(f"[bold green]✔ Successfully merged PR #{pr_num} using '{method}' strategy.[/bold green]")
+    else:
+        console.print(f"[bold red]✘ Failed to merge PR #{pr_num}. Ensure CI checks are passing and merge requirements are met.[/bold red]")
+        raise typer.Exit(code=1)
+
+
+# ==============================================================================
+# Model Context Protocol Commands (k-cli mcp ...)
+# ==============================================================================
+
+mcp_app = typer.Typer(
+    name="mcp",
+    help="Manage, inspect, and test Model Context Protocol (MCP) servers and tools.",
+    add_completion=False,
+)
+
+
+@mcp_app.command(name="list", help="List configured MCP servers.")
+def mcp_list_subcmd(
+    config: Optional[str] = typer.Option(None, "--config", help="Path to mcp.json config."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    mgr = MCPManager(config_path=config) if MCPManager else None
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "MCPManager not available", "servers": []}))
+        else:
+            console.print("[bold red]Error:[/bold red] MCPManager module is not available.")
+        raise typer.Exit(code=1)
+
+    servers = mgr.list_servers()
+    if json_output:
+        typer.echo(json.dumps(servers, indent=2))
+        return
+
+    table = Table(title="Configured Model Context Protocol (MCP) Servers", box=None)
+    table.add_column("Server Name", style="bold cyan")
+    table.add_column("Transport", style="magenta")
+    table.add_column("Command / URL", style="white")
+    table.add_column("Status", style="bold")
+    table.add_column("Tools", justify="right")
+    table.add_column("Resources", justify="right")
+
+    if not servers:
+        console.print("[yellow]No MCP servers configured yet.[/yellow]")
+        console.print("Add one using: [italic]k-cli mcp add github npx -a '-y @modelcontextprotocol/server-github'[/italic]\n")
+        return
+
+    for s in servers:
+        status_style = "green" if s["connected"] else ("yellow" if s["disabled"] else "dim")
+        status_text = f"[{status_style}]{s['status']}[/{status_style}]"
+        table.add_row(
+            s["name"],
+            s["transport"],
+            s["command"],
+            status_text,
+            str(s["tool_count"]),
+            str(s["resource_count"]),
+        )
+    console.print(table)
+
+
+@mcp_app.command(name="add", help="Add or update an MCP server configuration.")
+def mcp_add_subcmd(
+    name: str = typer.Argument(..., help="Server identifier name."),
+    command: str = typer.Argument(..., help="Command executable (e.g. npx, python, node)."),
+    args: Optional[List[str]] = typer.Argument(None, help="Command arguments."),
+    extra_args: Optional[str] = typer.Option(None, "--args", "-a", help="Arguments as a string or JSON list."),
+    env: Optional[str] = typer.Option(None, "--env", "-e", help="JSON string of environment variables."),
+    url: Optional[str] = typer.Option(None, "--url", "-u", help="URL for SSE/HTTP transport."),
+    transport: str = typer.Option("stdio", "--transport", "-t", help="Transport type (stdio, sse, http)."),
+    config: Optional[str] = typer.Option(None, "--config", help="Path to mcp.json config."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    mgr = MCPManager(config_path=config, auto_load=True) if MCPManager else None
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "MCPManager not available", "success": False}))
+        else:
+            console.print("[bold red]Error:[/bold red] MCPManager module is not available.")
+        raise typer.Exit(code=1)
+
+    env_dict = {}
+    if env:
+        try:
+            env_dict = json.loads(env)
+        except Exception:
+            pass
+
+    parsed_args = list(args) if args else []
+    if extra_args:
+        try:
+            val = json.loads(extra_args)
+            if isinstance(val, list):
+                parsed_args.extend([str(x) for x in val])
+            else:
+                parsed_args.extend(shlex.split(str(extra_args)))
+        except Exception:
+            parsed_args.extend(shlex.split(str(extra_args)))
+
+    cfg = MCPServerConfig(
+        name=name,
+        command=command,
+        args=parsed_args,
+        env=env_dict,
+        url=url,
+        transport=transport,
+    )
+    mgr.add_server(name, cfg, save=True)
+
+    if json_output:
+        typer.echo(json.dumps({"success": True, "name": name, "server": cfg.to_dict()}, indent=2))
+        return
+
+    console.print(f"[bold green]✔ Server '{name}' successfully registered and saved to configuration.[/bold green]")
+
+
+@mcp_app.command(name="remove", help="Remove an MCP server from configuration.")
+def mcp_remove_subcmd(
+    name: str = typer.Argument(..., help="Server identifier name to remove."),
+    config: Optional[str] = typer.Option(None, "--config", help="Path to mcp.json config."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    mgr = MCPManager(config_path=config, auto_load=True) if MCPManager else None
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "MCPManager not available", "success": False}))
+        else:
+            console.print("[bold red]Error:[/bold red] MCPManager module is not available.")
+        raise typer.Exit(code=1)
+
+    ok = mgr.remove_server(name, save=True)
+    if json_output:
+        typer.echo(json.dumps({"success": ok, "name": name}, indent=2))
+        return
+
+    if ok:
+        console.print(f"[bold green]✔ Server '{name}' removed successfully.[/bold green]")
+    else:
+        console.print(f"[bold yellow]Server '{name}' was not found in configuration.[/bold yellow]")
+
+
+@mcp_app.command(name="tools", help="List discovered MCP tools.")
+def mcp_tools_subcmd(
+    server: Optional[str] = typer.Option(None, "--server", "-s", help="Filter tools by server name."),
+    config: Optional[str] = typer.Option(None, "--config", help="Path to mcp.json config."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    mgr = MCPManager(config_path=config) if MCPManager else None
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "MCPManager not available", "tools": []}))
+        else:
+            console.print("[bold red]Error:[/bold red] MCPManager module is not available.")
+        raise typer.Exit(code=1)
+
+    tools = mgr.list_tools(server_name=server)
+    if json_output:
+        typer.echo(json.dumps([t.to_dict() for t in tools], indent=2))
+        return
+
+    if not tools:
+        console.print(f"[yellow]No tools discovered on {'server ' + server if server else 'any active server'}.[/yellow]")
+        return
+
+    table = Table(title=f"Discovered MCP Tools ({len(tools)})", box=None)
+    table.add_column("Tool Name", style="bold cyan")
+    table.add_column("Server", style="magenta")
+    table.add_column("Description", style="white")
+    for t in tools:
+        table.add_row(t.name, t.server_name or "default", t.description)
+    console.print(table)
+
+
+@mcp_app.command(name="call", help="Call an MCP tool with JSON arguments.")
+def mcp_call_subcmd(
+    tool_name: str = typer.Argument(..., help="Tool name to execute."),
+    json_args: str = typer.Argument("{}", help="JSON string arguments for tool call."),
+    server: Optional[str] = typer.Option(None, "--server", "-s", help="Server name if tool is ambiguous."),
+    config: Optional[str] = typer.Option(None, "--config", help="Path to mcp.json config."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    mgr = MCPManager(config_path=config) if MCPManager else None
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "MCPManager not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] MCPManager module is not available.")
+        raise typer.Exit(code=1)
+
+    parsed_args: Dict[str, Any] = {}
+    if json_args:
+        try:
+            parsed_args = json.loads(json_args)
+        except Exception as pe:
+            if json_output:
+                typer.echo(json.dumps({"error": f"Invalid JSON arguments: {pe}"}))
+            else:
+                console.print(f"[bold red]Error parsing JSON arguments:[/bold red] {pe}")
+            raise typer.Exit(code=1)
+
+    try:
+        result = mgr.call_tool(tool_name, arguments=parsed_args, server_name=server)
+        if json_output:
+            typer.echo(json.dumps(result.to_dict(), indent=2))
+            return
+
+        console.print(f"[bold green]Tool '{tool_name}' Output:[/bold green]")
+        console.print(result.text if result.text else json.dumps(result.raw, indent=2))
+    except Exception as ce:
+        if json_output:
+            typer.echo(json.dumps({"error": str(ce), "tool": tool_name}))
+        else:
+            console.print(f"[bold red]Tool execution error:[/bold red] {ce}")
+        raise typer.Exit(code=1)
+
+
+@mcp_app.command(name="test", help="Test connection to an MCP server.")
+def mcp_test_subcmd(
+    name: Optional[str] = typer.Argument(None, help="Server identifier name to test."),
+    config: Optional[str] = typer.Option(None, "--config", help="Path to mcp.json config."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    mgr = MCPManager(config_path=config) if MCPManager else None
+    if mgr is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "MCPManager not available", "success": False}))
+        else:
+            console.print("[bold red]Error:[/bold red] MCPManager module is not available.")
+        raise typer.Exit(code=1)
+
+    target_name = name or (list(mgr.server_configs.keys())[0] if mgr.server_configs else None)
+    if not target_name:
+        if json_output:
+            typer.echo(json.dumps({"error": "No MCP servers configured to test", "success": False}))
+        else:
+            console.print("[bold red]Error:[/bold red] No MCP servers configured to test.")
+        raise typer.Exit(code=1)
+
+    res = mcp_test_connection(target_name, manager=mgr)
+    if json_output:
+        typer.echo(json.dumps(res, indent=2))
+        return
+
+    if res["success"]:
+        console.print(f"[bold green]✔ Connected to '{target_name}' in {res['duration_ms']}ms![/bold green]")
+        console.print(f"  • Tools Discovered: {len(res.get('tools', []))}")
+        for t in res.get("tools", []):
+            console.print(f"    - [bold white]{t.get('name')}[/bold white]: {t.get('description', '')}")
+    else:
+        console.print(f"[bold red]✘ Connection to '{target_name}' failed: {res['error']}[/bold red]")
+        raise typer.Exit(code=1)
+
+
+# ==============================================================================
+# Task Deduplication Commands (k-cli dedup ...)
+# ==============================================================================
+
+dedup_app = typer.Typer(
+    name="dedup",
+    help="Check and detect duplicate issues, tasks, and existing code.",
+    add_completion=False,
+)
+
+
+@dedup_app.command(name="check", help="Check if a task or query matches existing commits or symbols.")
+def dedup_check_cmd(
+    query_or_issue: str = typer.Argument(..., help="Query string, issue title, or requested task."),
+    dir: str = typer.Option(".", "--dir", "-d", help="Repository workspace root directory."),
+    threshold: float = typer.Option(0.65, "--threshold", "-t", help="Confidence threshold (0.0 to 1.0) to mark as duplicate."),
+    depth: int = typer.Option(50, "--depth", help="Git commit history depth to inspect."),
+    json_output: bool = typer.Option(False, "--json", help="Output results in JSON format."),
+):
+    target_dir = Path(dir).resolve()
+    engine = DedupEngine(repo_path=str(target_dir), duplicate_threshold=threshold, git_depth=depth) if DedupEngine else None
+
+    if engine is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "DedupEngine module not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] DedupEngine module is not available.")
+        raise typer.Exit(code=1)
+
+    match = engine.scan_for_duplicate(query=query_or_issue)
+
+    if json_output:
+        typer.echo(json.dumps(match.to_dict() if match else {"is_duplicate": False, "confidence": 0.0}, indent=2))
+        return
+
+    if match and match.is_duplicate:
+        console.print(Panel(
+            f"[bold yellow]⚠ POTENTIAL DUPLICATE DETECTED ({match.confidence:.1%} confidence)[/bold yellow]\n\n"
+            f"[bold]Rationale:[/bold] {match.explanation}\n"
+            f"• [cyan]Match Type:[/cyan] {match.match_type.upper()}\n"
+            + (f"• [cyan]Existing Commit:[/cyan] {match.existing_commit[:10]}\n" if match.existing_commit else "")
+            + (f"• [cyan]File Location:[/cyan] {match.file_path}" + (f" (lines {match.line_range[0]}-{match.line_range[1]})" if match.line_range else "") + "\n" if match.file_path else ""),
+            title="Deduplication Warning",
+            border_style="yellow",
+        ))
+    else:
+        conf_str = f" ({match.confidence:.1%} max match)" if match else ""
+        console.print(f"[bold green]✔ Unique: No duplicate commits or symbols found{conf_str}. Safe to proceed.[/bold green]")
+
+
+@app.command(name="commit", help="Generate AST-grounded conventional commit message and stage/commit changes.")
+def commit_command(
+    push: bool = typer.Option(False, "--push", help="Push commit to remote branch after creating it."),
+    all: bool = typer.Option(True, "--all", "-a", help="Stage all uncommitted working tree changes."),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="Optional model identifier for AI-assisted refinement."),
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository path."),
+    json_output: bool = typer.Option(False, "--json", help="Output proposal in JSON format without committing."),
+):
+    """Generates an intelligent conventional commit from AST diffs and stages/commits changes."""
+    target_path = Path(repo).resolve()
+    engine = SmartGitEngine(repo_path=str(target_path)) if SmartGitEngine else None
+
+    if engine is None:
+        console.print("[bold red]Error:[/bold red] SmartGitEngine module is not available.")
+        raise typer.Exit(code=1)
+
+    if not engine.is_git_repo():
+        console.print(f"[bold red]Error:[/bold red] '{target_path}' is not a valid git repository.")
+        raise typer.Exit(code=1)
+
+    proposal = engine.generate_smart_commit(staged_only=not all, model=model)
+
+    if json_output:
+        typer.echo(json.dumps(proposal.to_dict(), indent=2))
+        return
+
+    if not proposal.files_changed:
+        console.print("[yellow]Working tree is clean. No uncommitted modifications found.[/yellow]")
+        return
+
+    # Render proposal preview
+    console.print(Panel(
+        f"[bold cyan]Type:[/bold cyan] {proposal.commit_type.upper()}"
+        + (f" | [magenta]Scope:[/magenta] {proposal.scope}" if proposal.scope else "")
+        + f"\n[bold green]Subject:[/bold green] {proposal.subject}\n\n"
+        f"[bold]Body:[/bold]\n{proposal.body}\n\n"
+        f"[dim]{proposal.raw_diff_summary}[/dim]",
+        title="✨ Smart Conventional Commit Proposal",
+        border_style="cyan",
+    ))
+
+    # Auto-stage and commit
+    success = engine.auto_stage_and_commit(message=proposal.full_message, push=push, all_files=all)
+    if success:
+        console.print(f"[bold green]✔ Changes committed successfully![/bold green]" + (" Pushed to remote." if push else ""))
+    else:
+        console.print("[bold red]✘ Git commit failed.[/bold red]")
+        raise typer.Exit(code=1)
+
+
+security_app = typer.Typer(
+    name="security",
+    help="Fast AST & Regex security scanner and surgical auto-healer.",
+    add_completion=False,
+)
+
+
+@security_app.command(name="scan", help="Scan repository for hardcoded secrets, SQLi, ReDoS, and unsafe execution.")
+def security_scan_command(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository path to scan."),
+    json_output: bool = typer.Option(False, "--json", help="Output findings in JSON format."),
+):
+    """Scans codebase for security vulnerabilities with AST & regex analysis."""
+    target_path = Path(repo).resolve()
+    healer = SecurityHealer(repo_path=str(target_path)) if SecurityHealer else None
+
+    if healer is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "SecurityHealer module is not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] SecurityHealer module is not available.")
+        raise typer.Exit(code=1)
+
+    report = healer.scan_repository()
+
+    if json_output:
+        typer.echo(report.to_json(indent=2))
+        return
+
+    if not report.findings:
+        console.print(f"[bold green]✔ Clean Workspace: 0 security vulnerabilities found across {report.scanned_files_count} files ({report.scan_duration_seconds:.2f}s).[/bold green]")
+        return
+
+    table = Table(title=f"🛡️ Security Vulnerability Scan ({report.total_findings} findings)", box=None)
+    table.add_column("ID", style="bold cyan")
+    table.add_column("Severity", style="bold")
+    table.add_column("Type", style="magenta")
+    table.add_column("File:Line", style="white")
+    table.add_column("CVSS", justify="right", style="yellow")
+    table.add_column("CWE", style="dim")
+    table.add_column("Description", style="white")
+
+    for f in report.findings:
+        sev_style = "bold red" if f.severity in ("CRITICAL", "HIGH") else "bold yellow"
+        table.add_row(
+            f.id,
+            f"[{sev_style}]{f.severity}[/{sev_style}]",
+            f.vuln_type,
+            f"{f.file_path}:{f.line_number}",
+            str(f.cvss_score),
+            f.cwe_id,
+            f.description[:60] + ("..." if len(f.description) > 60 else ""),
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Files scanned: {report.scanned_files_count} | Duration: {report.scan_duration_seconds:.2f}s | Max CVSS: {report.max_cvss_score}[/dim]")
+    console.print("[cyan]Run [bold]k-cli security heal --all[/bold] to automatically remediate detected vulnerabilities.[/cyan]\n")
+
+
+@security_app.command(name="heal", help="Auto-heal detected security vulnerabilities with AST & test verification.")
+def security_heal_command(
+    vuln_id: Optional[str] = typer.Option(None, "--vuln-id", "-i", help="Specific vulnerability ID to heal."),
+    heal_all: bool = typer.Option(False, "--all", "-a", help="Heal all detected vulnerabilities."),
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository path."),
+    json_output: bool = typer.Option(False, "--json", help="Output healing results in JSON format."),
+):
+    """Surgically remediates detected vulnerabilities with ground-truth verification."""
+    target_path = Path(repo).resolve()
+    healer = SecurityHealer(repo_path=str(target_path)) if SecurityHealer else None
+
+    if healer is None:
+        if json_output:
+            typer.echo(json.dumps({"error": "SecurityHealer module is not available"}))
+        else:
+            console.print("[bold red]Error:[/bold red] SecurityHealer module is not available.")
+        raise typer.Exit(code=1)
+
+    if not vuln_id and not heal_all:
+        console.print("[bold red]Error:[/bold red] Please specify either [bold]--vuln-id <id>[/bold] or [bold]--all[/bold].")
+        raise typer.Exit(code=1)
+
+    results: List[VulnerabilityHealResult] = []
+    if vuln_id:
+        res = healer.auto_heal_vulnerability(vuln_id=vuln_id)
+        results.append(res)
+    elif heal_all:
+        results = healer.heal_all_vulnerabilities()
+
+    if json_output:
+        typer.echo(json.dumps([r.to_dict() for r in results], indent=2))
+        return
+
+    if not results:
+        console.print("[yellow]No vulnerabilities were targeted or found for healing.[/yellow]")
+        return
+
+    for r in results:
+        if r.success:
+            console.print(Panel(
+                f"[bold green]✔ Successfully Healed {r.vuln_id}[/bold green] in [cyan]{r.file_path}[/cyan]\n\n"
+                f"• AST Syntax Verified: [green]✔[/green]\n"
+                f"• Test Suite Passed: [green]✔[/green]\n"
+                f"• Re-scan Clean: [green]✔[/green]\n\n"
+                + (f"[dim]Applied Diff:\n{r.diff}[/dim]" if r.diff else ""),
+                title=f"Remediation Success: {r.vuln_id}",
+                border_style="green",
+            ))
+        else:
+            console.print(Panel(
+                f"[bold red]✘ Failed to heal {r.vuln_id}[/bold red] in [cyan]{r.file_path or 'unknown'}[/cyan]\n\n"
+                f"[bold]Reason:[/bold] {r.error_message}",
+                title=f"Remediation Failed: {r.vuln_id}",
+                border_style="red",
+            ))
+
+
+# Mount sub-applications onto root CLI app
+app.add_typer(conflict_app, name="conflict")
+app.add_typer(pr_app, name="pr")
+app.add_typer(mcp_app, name="mcp")
+app.add_typer(dedup_app, name="dedup")
+app.add_typer(security_app, name="security")
 
 
 def interactive_mode(model: str = "qwen2.5-coder:1.5b", mock: bool = False):

@@ -10,10 +10,14 @@ K-CLI helps you inspect a repository, plan a change, generate a minimal implemen
 ## Why K-CLI
 
 - **Verification before confidence** — Python AST/compile/pytest, Bash syntax, and C++ syntax guards give generated code a real local check.
-- **Protected planning** — `k-cli plan` inspects a workspace and proposes a path without editing files.
-- **Agent workflows** — focused personas, repository maps, offline DevDocs search, diff previews, Git checkpoints, and subagent task decomposition.
-- **Local first, provider-flexible** — supports Ollama and compatible cloud providers when configured.
-- **A proper terminal experience** — rich streaming output for daily use and a full Textual workstation for an immersive UI.
+- **3-Way AI Merge Conflict Resolver** — Resolves Git merge conflicts automatically using AST scope context, 3-way semantic synthesis, and local compiler verification.
+- **GitHub PR Lifecycle in Terminal** — Review PRs, fix CI/CD failures, run compiler-grade AI code reviews, and auto-merge pull requests directly from your terminal.
+- **Universal Model Context Protocol (MCP)** — Connects to any MCP server (GitHub, SQLite, DevDocs, Docker, PostgreSQL) with dynamic tool discovery and execution.
+- **Deduplication & Anti-Overlap** — Scans Git history and AST symbol tables to alert you if a bug or feature is already solved in existing code.
+- **Crash Log & Incident Healer** — Ingests raw stack traces (Python, Node, Rust, Go, C++, Docker) and automatically generates regression tests and verified patches.
+- **Smart Conventional Commits** — Analyzes staged/unstaged diffs with AST inspection to produce clean Conventional Commits and rich PR descriptions.
+- **Autonomous Security Healer** — Scans and auto-patches hardcoded secrets, SQL injection, unsafe `eval()`, ReDoS, and shell injections.
+- **Cyber-TUI Workstation & Live Studio** — Interactive 3-Way Conflict Studio, GitHub PR Hub, MCP Inspector, Swarm Radar, and real-time token/cost speedometers.
 
 K-CLI does not claim generated code is correct merely because it looks convincing. A successful result is one that passed the selected local verification guard.
 
@@ -21,7 +25,7 @@ K-CLI does not claim generated code is correct merely because it looks convincin
 
 Optional project guidance can be supplied with `--rules .kcli/rules.md` on `run`, `plan`, and `prompt`. K-CLI bounds this file and labels it as untrusted repository context; it is never treated as executable policy.
 
-CI integrations can consume stable JSON from `k-cli plan ... --json`, `k-cli doctor --json`, `k-cli verify --json`, and `k-cli audit --json`.
+CI integrations can consume stable JSON from all commands using `--json`.
 
 ## Quick start
 
@@ -38,18 +42,25 @@ python -m pip install -e .
 # Check your local setup
 k-cli doctor
 
-# Create a read-only plan before you edit
-k-cli plan "add structured logging to the API client"
+# Resolve all merge conflicts in current repository with AI & AST verification
+k-cli conflict resolve
 
-# Generate and verify a small implementation (no model download required)
-k-cli run "write a Python function that normalizes an email address" --mock
-```
+# Review and auto-fix an open GitHub Pull Request
+k-cli pr review 42
+k-cli pr fix 42 --auto-push
 
-For local inference, install [Ollama](https://ollama.com/) and pull a coding model:
+# Connect to any Model Context Protocol (MCP) server
+k-cli mcp add github npx -a "-y @modelcontextprotocol/server-github"
 
-```bash
-ollama pull qwen2.5-coder:1.5b
-k-cli "add a timeout parameter to the HTTP client"
+# Generate smart Conventional Commit and stage
+k-cli commit --push
+
+# Scan and surgically heal security vulnerabilities
+k-cli security scan
+k-cli security heal --all
+
+# Launch the interactive Textual Cyber-Workstation
+k-cli ui
 ```
 
 ### Bring your own model endpoint
@@ -71,20 +82,34 @@ k-cli run "add retry handling" \
 
 | Command | What it does |
 | --- | --- |
-| `k-cli` | Opens the interactive shell with slash commands and history. |
-| `k-cli plan "goal"` | Builds a protected, read-only change plan. |
-| `k-cli run "task"` | Runs the persona pipeline and verifies generated code. |
-| `k-cli prompt "task" --model gemini` | Previews a compact model-aware prompt contract. |
-| `k-cli audit "task" --models model-a,model-b` | Independently generates candidates and locally verifies each one. |
-| `k-cli feature "capability" --require-tests` | Checks implementation and test evidence for a requested feature. |
-| `k-cli verify file.py` | Verifies an existing Python, Bash, or C++ file. |
-| `k-cli subagents "task"` | Decomposes a complex task into explorer, researcher, refactorer, and tester roles. |
-| `k-cli map` | Prints a token-budgeted AST map of the current codebase. |
-| `k-cli doc asyncio.Queue` | Searches the local DevDocs SQLite index. |
-| `k-cli diff` | Renders the working-tree diff. |
-| `k-cli review` | Performs a read-only AST review of changed Python files; supports `--json`. |
-| `k-cli doctor` | Shows install, Git, model-runtime, and safety diagnostics. |
-| `k-cli ui --mock` | Launches the full-screen Textual workstation. |
+| `k-cli` | Opens the interactive shell with slash commands, streaming animations, and history. |
+| `k-cli ui` | Launches the full-screen Textual Cyber-Workstation with 3-Way Conflict Studio and PR Hub. |
+| `k-cli conflict list` | Scans repository and lists all active 2-way and 3-way Git merge conflicts. |
+| `k-cli conflict resolve` | Automatically resolves merge conflicts with AI and runs local AST/test verification. |
+| `k-cli pr list` | Lists open/closed GitHub PRs with conflict tags, review state, and CI status pills. |
+| `k-cli pr view <pr_num>` | Inspects PR details, commit history, and diff summary in terminal. |
+| `k-cli pr review <pr_num>` | Performs multi-model code review with security, performance, and line suggestions. |
+| `k-cli pr fix <pr_num>` | Checks out PR branch, analyzes review/CI failures, generates verified fixes, and pushes. |
+| `k-cli pr merge <pr_num>` | Validates CI status and local test suite, then merges PR via GitHub API. |
+| `k-cli mcp list` | Lists configured MCP servers and active connection states. |
+| `k-cli mcp add <name> <cmd>` | Registers a new stdio or SSE/HTTP Model Context Protocol server. |
+| `k-cli mcp tools` | Discovers available tools across all connected MCP servers. |
+| `k-cli mcp call <tool> <args>` | Executes an MCP tool with JSON arguments directly from the command line. |
+| `k-cli dedup check "goal"` | Scans Git commits and AST symbol maps to detect if a task is already completed. |
+| `k-cli commit [--push]` | Generates AST-grounded Conventional Commits and stages/pushes atomic changes. |
+| `k-cli security scan` | High-speed AST & regex scan for API keys, SQL injection, unsafe eval, and ReDoS. |
+| `k-cli security heal` | Surgically auto-heals security vulnerabilities with verified AST replacements. |
+| `k-cli triage "trace/log"` | Diagnoses crash logs, isolates culprit source lines, and auto-heals incidents. |
+| `k-cli plan "goal"` | Builds a protected, read-only change plan with deduplication detection. |
+| `k-cli run "task"` | Runs the persona pipeline and verifies generated code locally. |
+| `k-cli audit "task"` | Independently generates candidates across multiple models and verifies each one. |
+| `k-cli feature "name"` | Checks implementation and test evidence for a requested feature. |
+| `k-cli verify file.py` | Verifies an existing Python, Bash, or C++ file against AST/compilers/test suites. |
+| `k-cli subagents "task"` | Decomposes complex tasks across parallel role-specialized subagents. |
+| `k-cli map` | Prints a token-budgeted PageRank AST map of the current codebase. |
+| `k-cli doc <symbol>` | High-speed offline SQLite FTS5 DevDocs documentation search (< 5ms). |
+| `k-cli diff` | Renders color-coded side-by-side or inline working-tree diffs. |
+| `k-cli doctor` | Shows installation, Git, model runtime, and safety diagnostics. |
 
 ### Project guidance, without hidden policy
 

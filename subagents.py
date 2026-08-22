@@ -40,12 +40,42 @@ try:
     from k_cli.patcher import Patcher
     from k_cli.repo_map import RepoMap
     from k_cli.verifier import CodeExtractor, VerificationResult, Verifier
+    from k_cli.conflict_resolver import ConflictResolver, ConflictBlock, ConflictSummary, FileResolutionResult
+    from k_cli.github_client import GitHubClient, PRLifecycleManager, PRReviewResult, PRFixResult
+    from k_cli.mcp_client import MCPManager, MCPClient, MCPTool, MCPToolResult
+    from k_cli.dedup_engine import DedupEngine, DedupMatch
 except ModuleNotFoundError:
     from doc_retriever import DocRetriever
     from llm_driver import LLMDriver
     from patcher import Patcher
     from repo_map import RepoMap
     from verifier import CodeExtractor, VerificationResult, Verifier
+    try:
+        from conflict_resolver import ConflictResolver, ConflictBlock, ConflictSummary, FileResolutionResult
+    except (ModuleNotFoundError, ImportError):
+        ConflictResolver = None  # type: ignore
+        ConflictBlock = None  # type: ignore
+        ConflictSummary = None  # type: ignore
+        FileResolutionResult = None  # type: ignore
+    try:
+        from github_client import GitHubClient, PRLifecycleManager, PRReviewResult, PRFixResult
+    except (ModuleNotFoundError, ImportError):
+        GitHubClient = None  # type: ignore
+        PRLifecycleManager = None  # type: ignore
+        PRReviewResult = None  # type: ignore
+        PRFixResult = None  # type: ignore
+    try:
+        from mcp_client import MCPManager, MCPClient, MCPTool, MCPToolResult
+    except (ModuleNotFoundError, ImportError):
+        MCPManager = None  # type: ignore
+        MCPClient = None  # type: ignore
+        MCPTool = None  # type: ignore
+        MCPToolResult = None  # type: ignore
+    try:
+        from dedup_engine import DedupEngine, DedupMatch
+    except (ModuleNotFoundError, ImportError):
+        DedupEngine = None  # type: ignore
+        DedupMatch = None  # type: ignore
 
 from rich.console import Console
 from rich.live import Live
@@ -77,6 +107,9 @@ class SubagentRole(str, Enum):
     CODER = "CODER"
     CRITIC = "CRITIC"
     ARCHITECT = "ARCHITECT"
+    CONFLICT_RESOLVER = "CONFLICT_RESOLVER"
+    PR_REVIEWER = "PR_REVIEWER"
+    MCP_OPERATOR = "MCP_OPERATOR"
 
     @classmethod
     def from_str(cls, val: str) -> "SubagentRole":
@@ -84,6 +117,12 @@ class SubagentRole(str, Enum):
         for role in cls:
             if role.value == val_upper or role.name == val_upper:
                 return role
+        if "CONFLICT" in val_upper or "MERGE" in val_upper:
+            return cls.CONFLICT_RESOLVER
+        if "PR" in val_upper or "PULL_REQUEST" in val_upper:
+            return cls.PR_REVIEWER
+        if "MCP" in val_upper or "TOOL_OPERATOR" in val_upper or "OPERATOR" in val_upper:
+            return cls.MCP_OPERATOR
         if "EXPLOR" in val_upper:
             return cls.EXPLORER
         if "RESEARCH" in val_upper or "DOC" in val_upper:
@@ -92,7 +131,7 @@ class SubagentRole(str, Enum):
             return cls.TESTER
         if "REFACTOR" in val_upper or "PATCH" in val_upper or "EDIT" in val_upper:
             return cls.REFACTORER
-        if "CRITIC" in val_upper or "REVIEW" in val_upper:
+        if "CRITIC" in val_upper:
             return cls.CRITIC
         return cls.CODER
 
@@ -116,6 +155,10 @@ class SubagentMessageType(str, Enum):
     TEST_RESULT = "TEST_RESULT"
     RESEARCH_FINDING = "RESEARCH_FINDING"
     EXPLORATION_MAP = "EXPLORATION_MAP"
+    CONFLICT_RESOLVED = "CONFLICT_RESOLVED"
+    PR_REVIEWED = "PR_REVIEWED"
+    MCP_TOOL_RESULT = "MCP_TOOL_RESULT"
+    DEDUP_WARNING = "DEDUP_WARNING"
     TASK_COMPLETE = "TASK_COMPLETE"
     TASK_FAILED = "TASK_FAILED"
     HEARTBEAT = "HEARTBEAT"
@@ -251,6 +294,8 @@ class SubagentRunResult:
     total_ram_mb: float
     total_duration_sec: float
     history: List[Dict[str, Any]] = field(default_factory=list)
+    dedup_warning: Optional[str] = None
+    dedup_match: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -264,6 +309,8 @@ class SubagentRunResult:
             "total_ram_mb": self.total_ram_mb,
             "total_duration_sec": self.total_duration_sec,
             "history": self.history,
+            "dedup_warning": self.dedup_warning,
+            "dedup_match": self.dedup_match,
         }
 
 
@@ -372,13 +419,56 @@ class TaskDecomposer:
         context_files: Optional[List[str]] = None,
     ) -> List[SubagentTask]:
         """
-        Constructs standard 4-stage pipeline:
-        Stage 1 (Parallel): [EXPLORER] + [RESEARCHER]
-        Stage 2: [REFACTORER] (depends on EXPLORER + RESEARCHER)
-        Stage 3: [TESTER] (depends on REFACTORER)
+        Constructs deterministic pipeline based on user request keywords:
+        - Conflicts: [CONFLICT_RESOLVER] -> [TESTER]
+        - PR Review: [PR_REVIEWER]
+        - MCP Operator: [MCP_OPERATOR]
+        - Standard: [EXPLORER] + [RESEARCHER] -> [REFACTORER] -> [TESTER]
         """
         files = context_files or []
         files_hint = f" Focus on files: {', '.join(files)}." if files else ""
+        prompt_lower = prompt.lower()
+
+        if "conflict" in prompt_lower or "merge conflict" in prompt_lower:
+            task_conflict = SubagentTask(
+                task_id="task_conflict_resolver",
+                name="Resolve Git Merge Conflicts",
+                role=SubagentRole.CONFLICT_RESOLVER,
+                prompt=f"Inspect and resolve git merge conflicts in workspace for: '{prompt}'.{files_hint}",
+                dependencies=[],
+                context={"context_files": files},
+            )
+            task_tester = SubagentTask(
+                task_id="task_tester",
+                name="Verify Resolved Files",
+                role=SubagentRole.TESTER,
+                prompt=f"Verify syntax and compiler correctness of resolved files for: '{prompt}'.",
+                dependencies=["task_conflict_resolver"],
+                context={"context_files": files},
+            )
+            return [task_conflict, task_tester]
+
+        if "review pr" in prompt_lower or "pr review" in prompt_lower or "pull request review" in prompt_lower:
+            task_pr = SubagentTask(
+                task_id="task_pr_reviewer",
+                name="Review GitHub Pull Request",
+                role=SubagentRole.PR_REVIEWER,
+                prompt=f"Perform AI code review and diff analysis for: '{prompt}'.",
+                dependencies=[],
+                context={"context_files": files},
+            )
+            return [task_pr]
+
+        if "mcp tool" in prompt_lower or "call mcp" in prompt_lower or "mcp operator" in prompt_lower:
+            task_mcp = SubagentTask(
+                task_id="task_mcp_operator",
+                name="Execute MCP Tool Operations",
+                role=SubagentRole.MCP_OPERATOR,
+                prompt=f"Execute Model Context Protocol tools to fulfill: '{prompt}'.",
+                dependencies=[],
+                context={"context_files": files},
+            )
+            return [task_mcp]
 
         # Subagent 1: Explorer
         task_explorer = SubagentTask(
@@ -488,6 +578,20 @@ class SubagentWorker:
             "Review candidate code for memory bloat, null checks, boundary bugs, and performance. "
             "Output VALIDATED or CRITIQUE: <reasons>."
         ),
+        SubagentRole.CONFLICT_RESOLVER: (
+            "You are [CONFLICT_RESOLVER] subagent for K-CLI. "
+            "Inspect git merge conflict markers (<<<<<<<, =======, >>>>>>>) and AST scope context. "
+            "Synthesize correct 3-way conflict resolutions that preserve semantic logic from both branches and maintain syntactic validity."
+        ),
+        SubagentRole.PR_REVIEWER: (
+            "You are [PR_REVIEWER] subagent for K-CLI. "
+            "Analyze Pull Request diffs, inspect CI check statuses and security/performance implications. "
+            "Provide structured verdicts, identified bugs, security issues, and concrete code improvements."
+        ),
+        SubagentRole.MCP_OPERATOR: (
+            "You are [MCP_OPERATOR] subagent for K-CLI. "
+            "Inspect available Model Context Protocol (MCP) server tools, construct valid JSON-RPC tool parameters, execute remote MCP tools, and interpret tool results."
+        ),
     }
 
     def __init__(
@@ -500,6 +604,10 @@ class SubagentWorker:
         repo_map: Optional[RepoMap] = None,
         doc_retriever: Optional[DocRetriever] = None,
         workspace_dir: Optional[Union[str, Path]] = None,
+        mcp_manager: Optional[Any] = None,
+        conflict_resolver: Optional[Any] = None,
+        pr_manager: Optional[Any] = None,
+        dedup_engine: Optional[Any] = None,
     ):
         self.task = task
         self.msg_queue = message_queue or queue.Queue()
@@ -509,6 +617,10 @@ class SubagentWorker:
         self.workspace_dir = Path(workspace_dir or ".").resolve()
         self.repo_map = repo_map or RepoMap(root_dir=str(self.workspace_dir))
         self.doc_retriever = doc_retriever or DocRetriever()
+        self.mcp_manager = mcp_manager
+        self.conflict_resolver = conflict_resolver
+        self.pr_manager = pr_manager
+        self.dedup_engine = dedup_engine
 
     def _send_message(self, msg_type: SubagentMessageType, payload: Dict[str, Any]) -> None:
         """Publishes a structured message to the orchestrator message bus."""
@@ -561,6 +673,12 @@ class SubagentWorker:
                 self._execute_tester(dep_results)
             elif self.task.role == SubagentRole.CRITIC:
                 self._execute_critic(dep_results)
+            elif self.task.role == SubagentRole.CONFLICT_RESOLVER:
+                self._execute_conflict_resolver(dep_results)
+            elif self.task.role == SubagentRole.PR_REVIEWER:
+                self._execute_pr_reviewer(dep_results)
+            elif self.task.role == SubagentRole.MCP_OPERATOR:
+                self._execute_mcp_operator(dep_results)
             else:
                 self._execute_generic(dep_results)
 
@@ -760,6 +878,143 @@ class SubagentWorker:
             {"task_id": self.task.task_id, "critique": critique_out[:80]},
         )
 
+    def invoke_mcp_tool(
+        self,
+        tool_name: str,
+        arguments: Optional[Dict[str, Any]] = None,
+        server_name: Optional[str] = None,
+    ) -> Any:
+        """Invokes an MCP tool in the subagent's execution context."""
+        mgr = self.mcp_manager
+        if mgr is None and MCPManager is not None:
+            mgr = MCPManager()
+            self.mcp_manager = mgr
+
+        if mgr is None:
+            raise RuntimeError("MCPManager is not available in subagent execution context.")
+
+        return mgr.call_tool(tool_name, arguments=arguments or {}, server_name=server_name)
+
+    def list_mcp_tools(self, server_name: Optional[str] = None) -> List[Any]:
+        """Lists available MCP tools in the subagent's execution context."""
+        mgr = self.mcp_manager
+        if mgr is None and MCPManager is not None:
+            mgr = MCPManager()
+            self.mcp_manager = mgr
+
+        if mgr is None:
+            return []
+
+        return mgr.list_tools(server_name=server_name)
+
+    def _execute_conflict_resolver(self, dep_results: Dict[str, SubagentTask]) -> None:
+        """CONFLICT_RESOLVER: Analyzes and resolves git merge conflict markers with compiler verification."""
+        self._update_progress(0.3, "Detecting and analyzing merge conflicts...")
+        resolver = self.conflict_resolver or (ConflictResolver() if ConflictResolver else None)
+        if resolver is None:
+            self.task.output_text = "ConflictResolver is not available."
+            return
+
+        target_file = self.task.context.get("file_path") or (self.task.context.get("context_files", [None])[0] if self.task.context.get("context_files") else None)
+        auto_stage = self.task.context.get("auto_accept", False) or self.task.context.get("auto_stage", True)
+
+        self._update_progress(0.6, "Performing AI 3-way conflict resolution with verification...")
+        if target_file and os.path.exists(str(target_file)):
+            res = resolver.resolve_file(
+                file_path=str(target_file),
+                llm_driver=self.driver,
+                verifier=self.verifier,
+                auto_stage=auto_stage,
+            )
+            self.task.output_text = f"Resolved {res.resolved_conflicts}/{res.total_conflicts} conflicts in {res.file_path}"
+            self.task.metadata["file_resolution"] = res.to_dict()
+            if not res.success:
+                self.task.error_trace = res.error_message or "Failed to resolve conflicts"
+        else:
+            summary = resolver.resolve_all_conflicts(
+                repo_path=str(self.workspace_dir),
+                llm_driver=self.driver,
+                verifier=self.verifier,
+                auto_stage=auto_stage,
+            )
+            self.task.output_text = f"Resolved {summary.resolved_files}/{summary.total_files} conflicted files."
+            self.task.metadata["conflict_summary"] = summary.to_dict()
+            if not summary.success:
+                self.task.error_trace = f"Failed to resolve {summary.failed_files} files."
+
+        self._send_message(
+            SubagentMessageType.CONFLICT_RESOLVED,
+            {"task_id": self.task.task_id, "output": self.task.output_text},
+        )
+
+    def _execute_pr_reviewer(self, dep_results: Dict[str, SubagentTask]) -> None:
+        """PR_REVIEWER: Inspects PR diffs, CI status, and generates compiler-grade code reviews."""
+        self._update_progress(0.3, "Fetching PR diff and CI check status...")
+        pr_mgr = self.pr_manager
+        if pr_mgr is None and PRLifecycleManager is not None:
+            pr_mgr = PRLifecycleManager(repo_dir=self.workspace_dir)
+            self.pr_manager = pr_mgr
+
+        if pr_mgr is None:
+            self.task.output_text = "PRLifecycleManager is not available."
+            return
+
+        pr_num = self.task.context.get("pr_number")
+        if pr_num is None:
+            m = re.search(r"#?(\d+)", self.task.prompt)
+            pr_num = int(m.group(1)) if m else 1
+
+        self._update_progress(0.6, f"Analyzing PR #{pr_num} diff for bugs and security...")
+        post_comment = self.task.context.get("post_comment", False)
+        review = pr_mgr.review_pr(
+            pr_number=pr_num,
+            llm_driver=self.driver,
+            post_comment=post_comment,
+        )
+
+        md_output = review.format_markdown() if hasattr(review, "format_markdown") else str(review)
+        self.task.output_text = md_output
+        self.task.metadata["pr_review"] = review.to_dict() if hasattr(review, "to_dict") else {}
+
+        self._send_message(
+            SubagentMessageType.PR_REVIEWED,
+            {"task_id": self.task.task_id, "verdict": getattr(review, "verdict", "COMMENT"), "pr_number": pr_num},
+        )
+
+    def _execute_mcp_operator(self, dep_results: Dict[str, SubagentTask]) -> None:
+        """MCP_OPERATOR: Executes Model Context Protocol tools and queries."""
+        self._update_progress(0.3, "Connecting to MCP servers and discovering tools...")
+        mgr = self.mcp_manager
+        if mgr is None and MCPManager is not None:
+            mgr = MCPManager()
+            self.mcp_manager = mgr
+
+        if mgr is None:
+            self.task.output_text = "MCPManager is not available."
+            return
+
+        tool_name = self.task.context.get("tool_name")
+        tool_args = self.task.context.get("arguments") or self.task.context.get("args") or {}
+
+        if tool_name:
+            self._update_progress(0.6, f"Executing MCP tool '{tool_name}'...")
+            try:
+                result = mgr.call_tool(tool_name, arguments=tool_args)
+                self.task.output_text = result.text or json.dumps(result.raw, indent=2)
+                self.task.metadata["mcp_result"] = result.to_dict() if hasattr(result, "to_dict") else {"text": result.text}
+                self._send_message(
+                    SubagentMessageType.MCP_TOOL_RESULT,
+                    {"task_id": self.task.task_id, "tool_name": tool_name, "success": not getattr(result, "is_error", False)},
+                )
+            except Exception as e:
+                self.task.output_text = f"Error executing tool '{tool_name}': {e}"
+                self.task.error_trace = str(e)
+        else:
+            tools = mgr.list_tools()
+            tool_names = [t.name for t in tools]
+            self.task.output_text = f"Discovered {len(tools)} MCP tools: {', '.join(tool_names)}"
+            self.task.metadata["tools"] = [t.to_dict() if hasattr(t, "to_dict") else {"name": t.name} for t in tools]
+
     def _execute_generic(self, dep_results: Dict[str, SubagentTask]) -> None:
         """Generic fallback executor using LLM driver."""
         self._update_progress(0.5, "Executing task...")
@@ -904,6 +1159,8 @@ class SubagentDispatcher:
         workspace_dir: Optional[Union[str, Path]] = None,
         max_workers: int = 4,
         ram_budget_mb: float = 1024.0,
+        mcp_manager: Optional[Any] = None,
+        dedup_engine: Optional[Any] = None,
     ):
         self.driver = _resolve_driver(driver)
         self.verifier = verifier or Verifier()
@@ -913,6 +1170,8 @@ class SubagentDispatcher:
         self.doc_retriever = doc_retriever or DocRetriever()
         self.max_workers = max(1, max_workers)
         self.ram_budget_mb = ram_budget_mb
+        self.mcp_manager = mcp_manager
+        self.dedup_engine = dedup_engine
 
         self.decomposer = TaskDecomposer(driver=self.driver)
         self.aggregator = PatchAggregator(patcher=self.patcher, verifier=self.verifier)
@@ -969,6 +1228,8 @@ class SubagentDispatcher:
                 repo_map=self.repo_map,
                 doc_retriever=self.doc_retriever,
                 workspace_dir=self.workspace_dir,
+                mcp_manager=self.mcp_manager,
+                dedup_engine=self.dedup_engine,
             )
             worker.execute(dependency_results=deps)
             with lock:
@@ -1035,12 +1296,35 @@ class SubagentDispatcher:
         event_callback: Optional[Callable[[SubagentMessage], None]] = None,
     ) -> SubagentRunResult:
         """Convenience method to decompose and execute a prompt."""
+        dedup_warning = None
+        dedup_dict = None
+        if self.dedup_engine is not None or DedupEngine is not None:
+            try:
+                engine = self.dedup_engine or DedupEngine(repo_path=str(self.workspace_dir))
+                d_match = engine.scan_for_duplicate(prompt)
+                if d_match and d_match.is_duplicate:
+                    dedup_warning = f"Duplicate task detected ({d_match.confidence:.1%}): {d_match.explanation}"
+                    dedup_dict = d_match.to_dict()
+                    self.msg_queue.put(
+                        SubagentMessage(
+                            sender_id="dedup_engine",
+                            recipient_id="orchestrator",
+                            msg_type=SubagentMessageType.DEDUP_WARNING,
+                            payload={"warning": dedup_warning, "match": dedup_dict},
+                        )
+                    )
+            except Exception:
+                pass
+
         tasks = self.decomposer.decompose(
             prompt=prompt,
             context_files=context_files,
             target_roles=target_roles,
         )
-        return self.dispatch(tasks=tasks, event_callback=event_callback)
+        res = self.dispatch(tasks=tasks, event_callback=event_callback)
+        res.dedup_warning = dedup_warning
+        res.dedup_match = dedup_dict
+        return res
 
 
 # ==============================================================================
@@ -1060,6 +1344,9 @@ class SubagentVisualizer:
         SubagentRole.TESTER: "yellow",
         SubagentRole.CRITIC: "bright_yellow",
         SubagentRole.ARCHITECT: "bright_magenta",
+        SubagentRole.CONFLICT_RESOLVER: "red",
+        SubagentRole.PR_REVIEWER: "bright_cyan",
+        SubagentRole.MCP_OPERATOR: "bright_blue",
     }
 
     STATUS_GLYPHS = {

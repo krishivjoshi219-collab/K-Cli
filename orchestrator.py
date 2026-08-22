@@ -22,17 +22,24 @@ try:
     from k_cli.llm_driver import LLMDriver
     from k_cli.verifier import CodeExtractor, VerificationResult, Verifier
     from k_cli.persona import DomainPersona, PersonaProfile, PersonaRegistry
+    from k_cli.dedup_engine import DedupEngine, DedupMatch
+    from k_cli.mcp_client import MCPManager
 except (ModuleNotFoundError, ImportError):
     try:
         from llm_driver import LLMDriver
         from verifier import CodeExtractor, VerificationResult, Verifier
         from persona import DomainPersona, PersonaProfile, PersonaRegistry
+        from dedup_engine import DedupEngine, DedupMatch
+        from mcp_client import MCPManager
     except (ModuleNotFoundError, ImportError):
         from llm_driver import LLMDriver
         from verifier import CodeExtractor, VerificationResult, Verifier
         PersonaProfile = Any  # type: ignore
         PersonaRegistry = None  # type: ignore
         DomainPersona = None  # type: ignore
+        DedupEngine = None  # type: ignore
+        DedupMatch = None  # type: ignore
+        MCPManager = None  # type: ignore
 
 
 class Persona(str, Enum):
@@ -41,6 +48,9 @@ class Persona(str, Enum):
     CODER = "CODER"
     CRITIC = "CRITIC"
     DEBUGGER = "DEBUGGER"
+    CONFLICT_RESOLVER = "CONFLICT_RESOLVER"
+    PR_REVIEWER = "PR_REVIEWER"
+    MCP_OPERATOR = "MCP_OPERATOR"
 
 
 PERSONA_PROMPTS: Dict[Persona, str] = {
@@ -74,6 +84,20 @@ PERSONA_PROMPTS: Dict[Persona, str] = {
         "Output ONLY the corrected code enclosed in markdown code blocks. "
         "Do NOT output any conversational text or explanation outside the code block."
     ),
+    Persona.CONFLICT_RESOLVER: (
+        "You are [CONFLICT_RESOLVER] persona for K-CLI AI Agent. "
+        "Inspect git merge conflict markers (<<<<<<<, =======, >>>>>>>) and AST scope context. "
+        "Synthesize correct 3-way conflict resolutions that preserve semantic logic from both branches and maintain syntactic validity."
+    ),
+    Persona.PR_REVIEWER: (
+        "You are [PR_REVIEWER] persona for K-CLI AI Agent. "
+        "Analyze Pull Request diffs, inspect CI check statuses, and identify security vulnerabilities, bugs, and performance bottlenecks. "
+        "Provide structured verdicts, actionable code suggestions, and concise markdown summaries."
+    ),
+    Persona.MCP_OPERATOR: (
+        "You are [MCP_OPERATOR] persona for K-CLI AI Agent. "
+        "Inspect available Model Context Protocol (MCP) server tools, construct valid JSON-RPC tool parameters, execute remote MCP tools, and interpret tool results."
+    ),
 }
 
 
@@ -88,8 +112,10 @@ class OrchestratorResult:
     architecture_plan: str
     critic_output: str
     ram_usage_mb: float
-    history: List[Dict[str, str]] = field(default_factory=list)
+    history: List[Dict[str, Any]] = field(default_factory=list)
     persona: str = "default"
+    dedup_warning: Optional[str] = None
+    dedup_match: Optional[Dict[str, Any]] = None
 
     @property
     def memory_rss_mb(self) -> float:
@@ -114,6 +140,8 @@ class Orchestrator:
         max_retries: int = 3,
         ram_budget_mb: float = 1024.0,
         persona: Optional[Union[str, PersonaProfile]] = None,
+        dedup_engine: Optional[Any] = None,
+        mcp_manager: Optional[Any] = None,
     ):
         self.driver = driver or LLMDriver()
         self.verifier = verifier or Verifier()
@@ -123,6 +151,8 @@ class Orchestrator:
             persona if isinstance(persona, PersonaProfile)
             else (PersonaRegistry.get_or_default(persona) if PersonaRegistry else None)
         )
+        self.dedup_engine = dedup_engine
+        self.mcp_manager = mcp_manager
 
     def set_persona(self, persona: Union[str, PersonaProfile]) -> Optional[PersonaProfile]:
         """Switches active domain persona profile."""
@@ -184,6 +214,24 @@ class Orchestrator:
         cb = token_stream_callback or stream_cb
         history = []
         self.check_ram_budget()
+
+        # Deduplication check before execution
+        dedup_warning = None
+        dedup_dict = None
+        if self.dedup_engine is not None or DedupEngine is not None:
+            try:
+                engine = self.dedup_engine or DedupEngine()
+                d_match = engine.scan_for_duplicate(user_prompt)
+                if d_match and d_match.is_duplicate:
+                    dedup_warning = f"Duplicate task detected ({d_match.confidence:.1%}): {d_match.explanation}"
+                    dedup_dict = d_match.to_dict()
+                    history.append({
+                        "persona": "DEDUP_ENGINE",
+                        "output": dedup_warning,
+                        "match": dedup_dict,
+                    })
+            except Exception:
+                pass
 
         active_profile = None
         if persona is not None:
@@ -275,6 +323,8 @@ class Orchestrator:
             ram_usage_mb=final_ram,
             history=history,
             persona=active_profile.id if active_profile else "default",
+            dedup_warning=dedup_warning,
+            dedup_match=dedup_dict,
         )
 
     def execute_subagents(
@@ -299,6 +349,8 @@ class Orchestrator:
             verifier=self.verifier,
             max_workers=max_workers,
             ram_budget_mb=self.ram_budget_mb,
+            mcp_manager=self.mcp_manager,
+            dedup_engine=self.dedup_engine,
         )
         tasks = dispatcher.decomposer.decompose(
             prompt=user_prompt,

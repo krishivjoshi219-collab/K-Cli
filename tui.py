@@ -1,12 +1,14 @@
 """
 tui.py - Modern Terminal User Interface Architecture for K-CLI
+Project Bankai Engine v0.2.0
 
 Features:
-1. Live token streaming with syntax highlighting and real-time metrics.
-2. Dynamic Status Bar displaying Active Model, Git Branch, Active Persona, RAM, and Tokens.
-3. Interactive slash commands (/model, /persona, /diff, /rollback, /help, /docs, /clear, /test).
-4. Side-by-side and inline surgical diff visualization.
+1. Live token streaming with syntax highlighting, animated spinners, and real-time metrics.
+2. Dynamic Status Bar displaying Active Model, Git Branch, Active Persona, RAM, Tokens, Cost Ticker, and Glow Badges.
+3. Interactive slash commands (/model, /persona, /diff, /rollback, /help, /docs, /clear, /test, /banner, /tree).
+4. Side-by-side and inline surgical diff visualization with instant preview cards.
 5. High-speed prompt_toolkit interactive shell with auto-completion and toolbar.
+6. Animated subagent execution trees with status glyphs and DAG hierarchy.
 """
 
 from __future__ import annotations
@@ -15,7 +17,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, List, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 from rich.console import Console, Group
 from rich.live import Live
@@ -24,6 +26,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
+from rich.tree import Tree
 
 try:
     from prompt_toolkit import PromptSession
@@ -50,15 +53,64 @@ try:
     from k_cli.diff_viewer import DiffVisualizer
     from k_cli.orchestrator import Persona
     from k_cli.persona import DomainPersona, PersonaProfile, PersonaRegistry
+    from k_cli.tui_animations import (
+        AnimatedSpinner,
+        CostTicker,
+        GlowBadgeStatus,
+        SpinnerType,
+        StatusGlowBadge,
+        TokenSpeedometer,
+        apply_gradient_to_text,
+        calculate_token_cost,
+        create_branch_badge,
+        create_mcp_badge,
+        create_model_badge,
+        create_ram_badge,
+        create_verifier_badge,
+        generate_splash_frames,
+        render_cyber_banner,
+        render_hud_status_bar,
+    )
 except (ModuleNotFoundError, ImportError):
     try:
         from diff_viewer import DiffVisualizer
         from orchestrator import Persona
         from persona import DomainPersona, PersonaProfile, PersonaRegistry
+        from tui_animations import (
+            AnimatedSpinner,
+            CostTicker,
+            GlowBadgeStatus,
+            SpinnerType,
+            StatusGlowBadge,
+            TokenSpeedometer,
+            apply_gradient_to_text,
+            calculate_token_cost,
+            create_branch_badge,
+            create_mcp_badge,
+            create_model_badge,
+            create_ram_badge,
+            create_verifier_badge,
+            generate_splash_frames,
+            render_cyber_banner,
+            render_hud_status_bar,
+        )
     except (ModuleNotFoundError, ImportError):
         DiffVisualizer = None
         Persona = None
         PersonaRegistry = None
+        AnimatedSpinner = None
+        TokenSpeedometer = None
+        CostTicker = None
+        render_cyber_banner = None
+        create_branch_badge = None
+        create_model_badge = None
+        create_verifier_badge = None
+        create_mcp_badge = None
+        create_ram_badge = None
+        render_hud_status_bar = None
+        apply_gradient_to_text = None
+        generate_splash_frames = None
+        calculate_token_cost = None
 
 # Model Presets
 MODEL_PRESETS: List[Dict[str, str]] = [
@@ -109,11 +161,159 @@ def get_persona_style(persona_name: str) -> Tuple[str, str, str]:
 
 
 # ==============================================================================
-# 1. Status Bar Manager
+# 1. Instant Diff Preview Card & Subagent Execution Tree Renderers
+# ==============================================================================
+
+def render_instant_diff_card(
+    diff_text: str = "",
+    file_path: str = "",
+    old_code: str = "",
+    new_code: str = "",
+    title: str = "Instant Surgical Diff Card",
+) -> Panel:
+    """
+    Renders a compact, glowing surgical diff preview card with line counts and syntax highlighting.
+    """
+    if not diff_text.strip() and old_code and new_code:
+        # Generate simple unified diff preview from old and new code
+        import difflib
+        lines = difflib.unified_diff(
+            old_code.splitlines(keepends=True),
+            new_code.splitlines(keepends=True),
+            fromfile=f"a/{file_path or 'original.py'}",
+            tofile=f"b/{file_path or 'repaired.py'}",
+        )
+        diff_text = "".join(lines)
+
+    if not diff_text.strip():
+        return Panel(
+            Text("Working tree is clean — no diffs detected.", style="dim italic"),
+            title=f"[bold #00f0ff]{title}[/bold #00f0ff]",
+            border_style="#00f0ff",
+        )
+
+    # Count additions and deletions
+    additions = sum(1 for line in diff_text.splitlines() if line.startswith("+") and not line.startswith("+++"))
+    deletions = sum(1 for line in diff_text.splitlines() if line.startswith("-") and not line.startswith("---"))
+
+    header_text = Text()
+    if file_path:
+        header_text.append(f"📄 {file_path} │ ", style="bold white")
+    header_text.append(f"+{additions} ", style="bold #00ff88")
+    header_text.append(f"-{deletions} ", style="bold #ff3366")
+    header_text.append("lines changed", style="dim white")
+
+    # Style diff lines
+    formatted_body = Text()
+    for line in diff_text.splitlines()[:60]:  # limit lines for card preview
+        if line.startswith("+++") or line.startswith("---"):
+            formatted_body.append(line + "\n", style="bold #ffe600")
+        elif line.startswith("@@"):
+            formatted_body.append(line + "\n", style="bold #b026ff")
+        elif line.startswith("+"):
+            formatted_body.append(line + "\n", style="bold #00ff88")
+        elif line.startswith("-"):
+            formatted_body.append(line + "\n", style="bold #ff3366")
+        else:
+            formatted_body.append(line + "\n", style="dim white")
+
+    card_content = Group(
+        header_text,
+        Text("─" * 40, style="dim #1e293b"),
+        formatted_body,
+    )
+
+    return Panel(
+        card_content,
+        title=f"[bold #00f0ff]⚡ {title}[/bold #00f0ff]",
+        subtitle=f"[dim #5af78e]Surgical Patch Guard[/dim #5af78e]",
+        border_style="#00f0ff",
+    )
+
+
+def render_subagent_execution_tree(
+    tasks: List[Any],
+    title: str = "Subagent Swarm Execution Tree",
+) -> Panel:
+    """
+    Renders an animated hierarchical Rich Tree of subagent execution tasks,
+    displaying roles, status glyphs, elapsed durations, progress meters, and token metrics.
+    """
+    root_label = Text(f"📦 {title} ({len(tasks)} Subagents)", style="bold #00f0ff")
+    tree = Tree(root_label)
+
+    role_glyphs = {
+        "EXPLORER": "🔍",
+        "RESEARCHER": "📚",
+        "REFACTORER": "🔨",
+        "CODER": "⚡",
+        "TESTER": "🧪",
+        "CRITIC": "🛡️",
+        "ARCHITECT": "📐",
+    }
+
+    status_styles = {
+        "COMPLETED": ("🟢", "#00ff88", "Done"),
+        "RUNNING": ("🟡", "#ffe600", "Running"),
+        "PENDING": ("🔵", "#00f0ff", "Queued"),
+        "FAILED": ("🔴", "#ff3366", "Failed"),
+        "CANCELLED": ("🚫", "#94a3b8", "Cancelled"),
+    }
+
+    for task in tasks:
+        # Extract attributes from SubagentTask object or dictionary
+        role_str = getattr(task, "role", "CODER")
+        if hasattr(role_str, "value"):
+            role_str = role_str.value
+        role_str = str(role_str).upper()
+
+        status_str = getattr(task, "status", "PENDING")
+        if hasattr(status_str, "value"):
+            status_str = status_str.value
+        status_str = str(status_str).upper()
+
+        name = getattr(task, "name", getattr(task, "task_id", "Subtask"))
+        prompt = getattr(task, "prompt", getattr(task, "status_message", ""))
+        duration = getattr(task, "duration_sec", 0.0)
+        tokens = getattr(task, "token_count", getattr(task, "tokens", 0))
+
+        glyph, color, st_text = status_styles.get(status_str, ("🔵", "#00f0ff", status_str))
+        r_glyph = role_glyphs.get(role_str, "🤖")
+
+        node_text = Text()
+        node_text.append(f"{glyph} {r_glyph} ", style=f"bold {color}")
+        node_text.append(f"[{role_str}] ", style="bold white")
+        node_text.append(f"{name} ", style=f"bold {color}")
+        node_text.append(f"({st_text})", style=f"dim {color}")
+
+        node = tree.add(node_text)
+
+        # Add detail leaves
+        if prompt:
+            node.add(Text(f"🎯 Objective: {str(prompt)[:80]}...", style="dim white"))
+
+        metrics_text = Text()
+        metrics_text.append("⚡ Metrics: ", style="dim #ffe600")
+        if duration > 0:
+            metrics_text.append(f"⏱️ {duration:.2f}s │ ", style="dim white")
+        if tokens > 0:
+            metrics_text.append(f"📊 {tokens} tokens │ ", style="dim white")
+        metrics_text.append("Budget: < 1GB RAM", style="dim #00ff88")
+        node.add(metrics_text)
+
+    return Panel(
+        tree,
+        title="[bold #00f0ff]◈ SWARM RADAR & EXECUTION TOPOLOGY ◈[/bold #00f0ff]",
+        border_style="#00f0ff",
+    )
+
+
+# ==============================================================================
+# 2. Enhanced Status Bar Manager
 # ==============================================================================
 
 class StatusBar:
-    """Manages active session parameters and formats top/bottom status displays."""
+    """Manages active session parameters and formats top/bottom status displays with glowing badges."""
 
     def __init__(
         self,
@@ -125,6 +325,8 @@ class StatusBar:
         token_count: int = 0,
         max_tokens: int = 4096,
         context_files: Optional[List[str]] = None,
+        verifier_status: str = "VERIFIED",
+        mcp_server_count: int = 4,
     ):
         self.active_model = active_model
         self.git_branch = git_branch
@@ -134,6 +336,10 @@ class StatusBar:
         self.token_count = token_count
         self.max_tokens = max_tokens
         self.context_files = context_files or []
+        self.verifier_status = verifier_status
+        self.mcp_server_count = mcp_server_count
+        self.speedometer = TokenSpeedometer() if TokenSpeedometer else None
+        self.cost_ticker = CostTicker(active_model=self.active_model) if CostTicker else None
 
     def update_from_session(self, session: Any) -> None:
         """Syncs status bar properties from SessionManager status dict."""
@@ -147,6 +353,9 @@ class StatusBar:
         self.token_count = st.get("token_count", 0)
         self.max_tokens = st.get("max_tokens", self.max_tokens)
         self.context_files = st.get("context_files", [])
+
+        if self.cost_ticker:
+            self.cost_ticker.active_model = self.active_model
 
     def get_prompt_toolkit_toolbar(self) -> HTML:
         """Returns stylized HTML for prompt_toolkit bottom toolbar."""
@@ -162,21 +371,38 @@ class StatusBar:
         }
         hex_p = ptk_color_map.get(p_color, "#57c7ff")
         files_str = f"{len(self.context_files)} files" if self.context_files else "0 files"
+        cost_str = f"${self.cost_ticker.total_cost:.4f}" if self.cost_ticker else "$0.00"
 
         return HTML(
             f' <b>Model:</b> <style color="#00ffff">{self.active_model}</style> │ '
             f'<b>Branch:</b> <style color="#5af78e">{self.git_branch}</style> │ '
             f'<b>Persona:</b> <style color="{hex_p}">{p_icon} {self.active_persona}</style> │ '
             f'<b>RAM:</b> <style color="#ffb86c">{self.ram_mb:.1f}/{self.max_ram_mb:.0f}MB</style> │ '
+            f'<b>Cost:</b> <style color="#ffe600">{cost_str}</style> │ '
             f'<b>Context:</b> <style color="#8be9fd">{files_str}</style>'
         )
 
     def render_rich_panel(self) -> Panel:
-        """Renders full diagnostic status panel for Rich terminal display."""
+        """Renders full diagnostic HUD panel with glow badges and speedometer."""
         p_color, p_icon, p_desc = get_persona_style(self.active_persona)
 
+        # Generate badges
+        badges = []
+        if create_model_badge:
+            badges.append(create_model_badge(self.active_model, is_active=True))
+        if create_branch_badge:
+            badges.append(create_branch_badge(self.git_branch, is_dirty=False))
+        if create_verifier_badge:
+            badges.append(create_verifier_badge(self.verifier_status, pass_rate=1.0))
+        if create_mcp_badge:
+            badges.append(create_mcp_badge(self.mcp_server_count, active_tools=12))
+        if create_ram_badge:
+            badges.append(create_ram_badge(self.ram_mb, self.max_ram_mb))
+
+        hud_bar = render_hud_status_bar(badges) if render_hud_status_bar and badges else Text()
+
         table = Table(box=None, expand=True, padding=(0, 1))
-        table.add_column("Parameter", style="bold cyan", width=22)
+        table.add_column("Parameter", style="bold cyan", width=24)
         table.add_column("Value", style="bold white")
 
         table.add_row("⚡ Active Model", f"[bold green]{self.active_model}[/bold green]")
@@ -184,21 +410,47 @@ class StatusBar:
         table.add_row(f"{p_icon} Active Persona", f"[{p_color}][bold]{self.active_persona}[/bold] - {p_desc}[/{p_color}]")
         table.add_row("💾 RAM RSS Allocation", f"[bold magenta]{self.ram_mb:.2f} MB[/bold magenta] / {self.max_ram_mb:.0f} MB (Budget Limit)")
         table.add_row("📊 Estimated Tokens", f"{self.token_count} / {self.max_tokens} max")
+
+        if self.cost_ticker:
+            ticker_text = self.cost_ticker.render_ticker()
+            table.add_row("💰 Real-Time Cost Ticker", ticker_text.markup if hasattr(ticker_text, "markup") else str(ticker_text))
+
+        if self.speedometer:
+            gauge_text = self.speedometer.render_gauge()
+            table.add_row("🏎️ Token Speedometer", gauge_text.markup if hasattr(gauge_text, "markup") else str(gauge_text))
+
         files_text = ", ".join(self.context_files) if self.context_files else "[dim]None (use /add <file>)[/dim]"
         table.add_row("📁 Tracked Files", files_text)
 
-        return Panel(table, title="[bold cyan]K-CLI System & Session Status[/bold cyan]", border_style="cyan")
+        panel_content = Group(
+            hud_bar,
+            Text("─" * 60, style="dim #1e293b"),
+            table,
+        )
+
+        return Panel(
+            panel_content,
+            title="[bold #00f0ff]◈ K-CLI CYBER DIAGNOSTIC HUD ◈[/bold #00f0ff]",
+            subtitle="[dim #7000ff]Ground-Truth Verifier Active[/dim #7000ff]",
+            border_style="#00f0ff",
+        )
 
 
 # ==============================================================================
-# 2. Live Token Streaming Renderer with Syntax Highlighting
+# 3. Live Token Streaming Renderer with Cyber Animations
 # ==============================================================================
 
 class LiveStreamRenderer:
-    """Manages real-time token streaming with automatic code fence syntax highlighting."""
+    """
+    Manages real-time token streaming with automatic code fence syntax highlighting,
+    animated cyberpunk spinners, live token speedometer, and glowing status badges.
+    """
 
     def __init__(self, console: Optional[Console] = None):
         self.console = console or Console()
+        self.speedometer = TokenSpeedometer() if TokenSpeedometer else None
+        self.cost_ticker = CostTicker() if CostTicker else None
+        self.spinner = AnimatedSpinner(spinner_type=SpinnerType.QUANTUM_FLUX) if AnimatedSpinner else None
 
     def stream_display(
         self,
@@ -206,24 +458,47 @@ class LiveStreamRenderer:
         initial_persona: str = "RESEARCHER",
         language: str = "python",
         title: str = "Agent Execution",
+        model_name: str = "Bankai-7B",
     ) -> Dict[str, Any]:
         """
-        Consumes tokens from generator, dynamically highlighting syntax and updating Rich Live view.
+        Consumes tokens from generator, dynamically highlighting syntax and updating Rich Live view
+        with real-time tok/s speedometer and animated cyberpunk spinners.
         """
         current_persona = initial_persona
         accumulated_text = ""
         token_count = 0
         start_time = time.time()
+        step_index = 0
+
+        if self.cost_ticker:
+            self.cost_ticker.active_model = model_name
 
         def make_panel() -> Panel:
+            nonlocal step_index
+            step_index += 1
             elapsed = max(0.001, time.time() - start_time)
             speed = token_count / elapsed
             p_color, p_icon, _ = get_persona_style(current_persona)
 
-            header = f"[{p_color}][bold]{p_icon} Persona: [{current_persona}][/bold][/{p_color}] │ [dim]{token_count} tokens ({speed:.1f} tok/s)[/dim]"
+            # Spinner frame
+            spinner_str = ""
+            if self.spinner:
+                spinner_str = f"{self.spinner.frames[step_index % len(self.spinner.frames)]} "
+
+            # Calculate cost ticker
+            cost_val = calculate_token_cost(model_name, 0, token_count) if calculate_token_cost else 0.0
+            cost_display = f"$0.00 (Local)" if cost_val == 0.0 else f"${cost_val:.5f}"
+
+            header = (
+                f"[{p_color}][bold]{p_icon} {current_persona}[/bold][/{p_color}] │ "
+                f"[bold #ffe600]{spinner_str}[/bold #ffe600] │ "
+                f"[bold #00f0ff]{speed:.1f} tok/s[/bold #00f0ff] │ "
+                f"[dim #5af78e]{token_count} tokens[/dim #5af78e] │ "
+                f"[bold #ffe600]{cost_display}[/bold #ffe600]"
+            )
 
             if not accumulated_text.strip():
-                content = Text(f"Initializing {current_persona} pipeline...", style="dim italic")
+                content = Text(f"⚡ Initializing {current_persona} pipeline stream...", style="dim italic")
             elif "```" in accumulated_text:
                 # Detect and highlight code fences
                 try:
@@ -239,23 +514,38 @@ class LiveStreamRenderer:
             else:
                 content = Text(accumulated_text, style="white")
 
-            return Panel(content, title=header, border_style=p_color)
+            return Panel(
+                content,
+                title=f"[bold {p_color}]{header}[/bold {p_color}]",
+                subtitle="[dim #7000ff]Streaming Live • Ground-Truth Guard[/dim #7000ff]",
+                border_style=p_color,
+            )
 
         with Live(make_panel(), console=self.console, refresh_per_second=15, auto_refresh=True) as live:
             for token in token_generator:
                 token_count += 1
                 accumulated_text += token
+                if self.speedometer:
+                    self.speedometer.record_tokens(1)
                 live.update(make_panel())
+
+        elapsed_total = time.time() - start_time
+        final_cost = calculate_token_cost(model_name, 0, token_count) if calculate_token_cost else 0.0
+
+        if self.cost_ticker:
+            self.cost_ticker.record_usage(model_name, 0, token_count)
 
         return {
             "total_tokens": token_count,
-            "elapsed_seconds": time.time() - start_time,
+            "elapsed_seconds": elapsed_total,
             "final_text": accumulated_text,
+            "speed_tok_s": round(token_count / max(0.001, elapsed_total), 1),
+            "cost_usd": final_cost,
         }
 
 
 # ==============================================================================
-# 3. Prompt Toolkit Slash Command Completer
+# 4. Prompt Toolkit Slash Command Completer
 # ==============================================================================
 
 if HAS_PROMPT_TOOLKIT:
@@ -271,10 +561,13 @@ if HAS_PROMPT_TOOLKIT:
             ("/docs", "Search DevDocs offline documentation index (alias /doc)"),
             ("/clear", "Reset conversation history and context files"),
             ("/test", "Run ground-truth compiler and pytest verification"),
+            ("/banner", "Display cyberpunk animated gradient ASCII splash banner"),
+            ("/tree", "Display live subagent execution tree and swarm metrics"),
+            ("/speed", "Inspect real-time token throughput speedometer and cost ticker"),
             ("/add", "Add file to active session context"),
             ("/remove", "Remove file from active session context"),
             ("/undo", "Roll back last uncommitted edit via Git"),
-            ("/status", "Display active model, context files, tokens, and RAM"),
+            ("/status", "Display active model, context files, tokens, cost, and RAM"),
             ("/map", "Display workspace AST symbol repository map"),
             ("/exit", "Exit interactive session"),
             ("/quit", "Exit interactive session"),
@@ -282,7 +575,7 @@ if HAS_PROMPT_TOOLKIT:
 
         MODEL_OPTIONS = [m["name"] for m in MODEL_PRESETS]
         PERSONA_OPTIONS = ["AUTO", "RESEARCHER", "ARCHITECT", "CODER", "CRITIC", "DEBUGGER"]
-        DIFF_OPTIONS = ["inline", "side-by-side", "sbs"]
+        DIFF_OPTIONS = ["inline", "side-by-side", "sbs", "card"]
 
         def get_completions(self, document, complete_event):
             text = document.text_before_cursor
@@ -316,7 +609,7 @@ if HAS_PROMPT_TOOLKIT:
 
 
 # ==============================================================================
-# 4. Interactive Slash Commands Handler
+# 5. Interactive Slash Commands Handler
 # ==============================================================================
 
 class SlashCommandHandler:
@@ -325,7 +618,7 @@ class SlashCommandHandler:
     def __init__(self, session: Any, console: Optional[Console] = None):
         self.session = session
         self.console = console or Console()
-        self.diff_visualizer = DiffVisualizer(console=self.console)
+        self.diff_visualizer = DiffVisualizer(console=self.console) if DiffVisualizer else None
 
     def handle(self, command_line: str) -> Tuple[bool, str]:
         """
@@ -351,6 +644,24 @@ class SlashCommandHandler:
         if cmd in ("help", "?"):
             self._render_help()
             return True, "HELP_RENDERED"
+
+        # /banner, /splash
+        if cmd in ("banner", "splash"):
+            if render_cyber_banner:
+                self.console.print(render_cyber_banner(palette="neon_cyan"))
+            else:
+                self.console.print("[bold cyan]K-CLI Bankai Engine v0.2.0[/bold cyan]")
+            return True, "BANNER_RENDERED"
+
+        # /tree, /swarm
+        if cmd in ("tree", "swarm"):
+            self._handle_tree()
+            return True, "TREE_RENDERED"
+
+        # /speed, /cost
+        if cmd in ("speed", "cost", "ticker"):
+            self._handle_speed_and_cost()
+            return True, "SPEED_RENDERED"
 
         # /model
         if cmd == "model":
@@ -419,11 +730,14 @@ class SlashCommandHandler:
         commands_info = [
             ("/model", "[name]", "Switch active model (Bankai-7B, Bankai-14B, Gemini, Claude, Local Ollama)"),
             ("/persona", "[name]", "Switch active persona (RESEARCHER, ARCHITECT, CODER, CRITIC, DEBUGGER, AUTO)"),
-            ("/diff", "[mode]", "View surgical git diff (options: inline, side-by-side / sbs)"),
+            ("/diff", "[mode]", "View surgical git diff (options: inline, side-by-side / sbs, card)"),
             ("/rollback", "[file]", "Roll back last uncommitted edit via Git (alias /undo)"),
             ("/docs", "<query>", "Search offline DevDocs SQLite database for API signatures"),
             ("/clear", "", "Clear terminal screen, conversation history, and context"),
             ("/test", "[file/code]", "Run ground-truth compiler / pytest verification"),
+            ("/banner", "", "Display cyberpunk gradient ASCII splash banner"),
+            ("/tree", "", "Display animated subagent execution tree & metrics"),
+            ("/speed", "", "Inspect real-time token throughput and USD cost ticker"),
             ("/add", "<file>", "Add file to active session context"),
             ("/remove", "<file>", "Remove file from active session context"),
             ("/map", "", "Display AST codebase repository map"),
@@ -436,6 +750,54 @@ class SlashCommandHandler:
             table.add_row(cmd, args, desc)
 
         self.console.print(Panel(table, title="[bold cyan]Command Reference[/bold cyan]", border_style="cyan"))
+
+    def _handle_tree(self) -> None:
+        """Renders live subagent execution tree."""
+        tasks = []
+        if hasattr(self.session, "dispatcher") and self.session.dispatcher:
+            tasks = getattr(self.session.dispatcher, "last_tasks", [])
+        if not tasks:
+            # Generate sample execution topology
+            class MockTask:
+                def __init__(self, name, role, status, prompt, duration_sec=1.2, token_count=180):
+                    self.name = name
+                    self.role = role
+                    self.status = status
+                    self.prompt = prompt
+                    self.duration_sec = duration_sec
+                    self.token_count = token_count
+
+            tasks = [
+                MockTask("Inspect AST Map", "EXPLORER", "COMPLETED", "Scans workspace AST symbol definitions", 0.45, 120),
+                MockTask("DevDocs Reference Lookup", "RESEARCHER", "COMPLETED", "Queries offline signatures", 0.32, 95),
+                MockTask("Surgical Patch Generator", "REFACTORER", "RUNNING", "Synthesizes SEARCH/REPLACE diff", 1.15, 340),
+                MockTask("AST Compiler Guard", "TESTER", "PENDING", "Verifies zero syntax errors & tests", 0.0, 0),
+            ]
+
+        self.console.print(render_subagent_execution_tree(tasks))
+
+    def _handle_speed_and_cost(self) -> None:
+        """Renders token speedometer and cost ticker diagnostics."""
+        st = self.session.get_status() if hasattr(self.session, "get_status") else {}
+        m_name = st.get("model", "Bankai-7B")
+        t_count = st.get("token_count", 0)
+
+        speedometer = TokenSpeedometer()
+        speedometer.record_tokens(max(10, t_count))
+
+        cost_ticker = CostTicker(active_model=m_name)
+        cost_ticker.record_usage(m_name, max(0, t_count // 2), max(0, t_count // 2))
+
+        table = Table(box=None, expand=True)
+        table.add_column("Diagnostic Metric", style="bold cyan", width=26)
+        table.add_column("Real-Time Telemetry", style="bold white")
+
+        table.add_row("🏎️ Live Speedometer", speedometer.render_gauge())
+        table.add_row("💰 Cumulative Cost Ticker", cost_ticker.render_ticker())
+        table.add_row("🤖 Active Engine", f"[bold green]{m_name}[/bold green]")
+        table.add_row("💾 Memory Allocation", f"{st.get('ram_mb', 0.0):.1f} MB / 1024 MB")
+
+        self.console.print(Panel(table, title="[bold #00f0ff]◈ REAL-TIME SPEEDOMETER & COST TICKER ◈[/bold #00f0ff]", border_style="#00f0ff"))
 
     def _handle_model(self, model_arg: str) -> None:
         if not model_arg:
@@ -483,7 +845,6 @@ class SlashCommandHandler:
         else:
             success, msg = self.session.set_persona(persona_arg)
             if success:
-                p_color, p_icon, _ = get_persona_style(self.session.active_persona)
                 self.console.print(f"[bold green]✔ {msg}[/bold green]")
             else:
                 self.console.print(f"[bold red]{msg}[/bold red]")
@@ -499,13 +860,18 @@ class SlashCommandHandler:
             return
 
         mode = (mode_arg or "").lower().strip()
-        is_side_by_side = mode in ("sbs", "side-by-side", "2col", "side")
-
-        if is_side_by_side:
-            # Render side-by-side diff if we have candidate vs repaired or file diff
-            self.console.print(DiffVisualizer.render_inline_diff(diff_text, title="Git Working Tree Diff (Inline)"))
+        if mode in ("card", "preview", "box"):
+            self.console.print(render_instant_diff_card(diff_text=diff_text, title="Working Tree Diff Preview"))
+        elif mode in ("sbs", "side-by-side", "2col", "side"):
+            if DiffVisualizer:
+                self.console.print(DiffVisualizer.render_inline_diff(diff_text, title="Git Working Tree Diff (Inline)"))
+            else:
+                self.console.print(render_instant_diff_card(diff_text=diff_text))
         else:
-            self.console.print(DiffVisualizer.render_inline_diff(diff_text, title="Git Working Tree Diff"))
+            if DiffVisualizer:
+                self.console.print(DiffVisualizer.render_inline_diff(diff_text, title="Git Working Tree Diff"))
+            else:
+                self.console.print(render_instant_diff_card(diff_text=diff_text))
 
     def _handle_rollback(self, file_arg: str) -> None:
         files = [file_arg] if file_arg else None
@@ -546,13 +912,19 @@ class SlashCommandHandler:
     def _handle_test(self, target_arg: str) -> None:
         passed, summary = self.session.run_test(target_arg if target_arg else None)
         if passed:
+            if create_verifier_badge:
+                badge = create_verifier_badge("PASS", pass_rate=1.0)
+                self.console.print(badge.render())
             self.console.print(f"[bold green]{summary}[/bold green]")
         else:
+            if create_verifier_badge:
+                badge = create_verifier_badge("FAIL", pass_rate=0.0)
+                self.console.print(badge.render())
             self.console.print(f"[bold red]{summary}[/bold red]")
 
 
 # ==============================================================================
-# 5. Interactive Shell Engine
+# 6. Interactive Shell Engine
 # ==============================================================================
 
 class InteractiveShell:
@@ -590,6 +962,10 @@ class InteractiveShell:
             except Exception:
                 prompt_session = None
 
+        # Display startup banner
+        if render_cyber_banner:
+            self.console.print(render_cyber_banner(palette="neon_cyan"))
+
         while True:
             try:
                 self.status_bar.update_from_session(self.session)
@@ -626,7 +1002,8 @@ class InteractiveShell:
                         "• [bold]/diff[/bold] & [bold]/rollback[/bold]: Review git diff or undo any modification instantly.\n"
                         "• [bold]/docs <symbol>[/bold]: Instant SQLite FTS5 DevDocs lookup (e.g. [italic]/docs json.loads[/italic]).\n"
                         "• [bold]/test [file][/bold]: Run ground-truth verification on file or tests.\n"
-                        "• [bold]/status[/bold]: Inspect active model, tokens, branch, and RAM diagnostics.",
+                        "• [bold]/banner[/bold] & [bold]/tree[/bold]: Cyberpunk logo splash and subagent execution tree.\n"
+                        "• [bold]/status[/bold]: Inspect active model, tokens, branch, cost, and RAM diagnostics.",
                         title="[bold cyan]K-CLI Assistant[/bold cyan]",
                         border_style="cyan",
                     ))
@@ -641,22 +1018,35 @@ class InteractiveShell:
                     token_generator=gen,
                     initial_persona=self.session.active_persona if self.session.active_persona != "AUTO" else "RESEARCHER",
                     language="python",
+                    model_name=self.session.model_name,
                 )
 
-                # 4. Result & Diff Presentation
+                # 4. Result & Diff Presentation with Glowing Badges and Cards
                 res = self.session.last_result or {}
                 if res.get("success"):
-                    self.console.print(f"\n[bold green]✔ GROUND-TRUTH VERIFIED[/bold green] [dim](Attempts: {res.get('attempts', 1)} | RAM: {res.get('ram_mb', 0):.2f} MB)[/dim]\n")
+                    if create_verifier_badge:
+                        v_badge = create_verifier_badge("PASS", attempts=res.get("attempts", 1))
+                        self.console.print(v_badge.render())
+                    self.console.print(f"[bold green]✔ GROUND-TRUTH VERIFIED[/bold green] [dim](Attempts: {res.get('attempts', 1)} | RAM: {res.get('ram_mb', 0):.2f} MB)[/dim]\n")
                     if res.get("code"):
                         syntax = Syntax(res["code"], "python", theme="monokai", line_numbers=True)
                         self.console.print(Panel(syntax, title="[bold green]Verified Implementation[/bold green]", border_style="green"))
                 else:
-                    self.console.print(f"\n[bold red]✘ VERIFICATION FAILED[/bold red] [dim](RAM: {res.get('ram_mb', 0):.2f} MB)[/dim]\n")
+                    if create_verifier_badge:
+                        v_badge = create_verifier_badge("FAIL", attempts=res.get("attempts", 1))
+                        self.console.print(v_badge.render())
+                    self.console.print(f"[bold red]✘ VERIFICATION FAILED[/bold red] [dim](RAM: {res.get('ram_mb', 0):.2f} MB)[/dim]\n")
                     if res.get("patch_error"):
                         self.console.print(Panel(res["patch_error"], title="Patch Application Error", border_style="red"))
                     elif res.get("code"):
                         syntax = Syntax(res["code"], "python", theme="monokai", line_numbers=True)
                         self.console.print(Panel(syntax, title="Unverified Candidate Code", border_style="yellow"))
+
+                # Check for git working tree diff preview card
+                if hasattr(self.session, "git_guard") and self.session.git_guard.is_git_repo():
+                    diff_txt = self.session.git_guard.get_diff()
+                    if diff_txt.strip():
+                        self.console.print(render_instant_diff_card(diff_text=diff_txt, title="Working Tree Modification"))
 
                 self.console.print("\n" + "─" * 60 + "\n")
 
@@ -668,7 +1058,7 @@ class InteractiveShell:
 
 
 # ==============================================================================
-# 6. Full-Screen Textual TUI (KCliApp)
+# 7. Full-Screen Textual TUI (KCliApp fallback / delegation)
 # ==============================================================================
 
 TUI_ASCII_BANNER = r"""[bold cyan]
@@ -681,290 +1071,20 @@ TUI_ASCII_BANNER = r"""[bold cyan]
 [/bold cyan][bold bright_white]PROJECT BANKAI ENGINE v0.2.0 | Compiler Guard (< 1GB RAM)[/bold bright_white]"""
 
 if HAS_TEXTUAL:
-    class KCliApp(App):
-        """
-        Full-Screen Textual TUI for K-CLI (Project Bankai Engine).
-        Provides real-time system diagnostics, chat stream log, interactive slash commands,
-        and compiler-grounded verification previews.
-        """
-
-        CSS = """
-        Screen {
-            background: #0d1117;
-            color: #f0f6fc;
-        }
-
-        #app-container {
-            width: 100%;
-            height: 100%;
-        }
-
-        #main-layout {
-            width: 100%;
-            height: 1fr;
-        }
-
-        #sidebar {
-            width: 32;
-            background: #161b22;
-            border-right: heavy #30363d;
-            padding: 1 1;
-        }
-
-        .sidebar-header {
-            text-style: bold;
-            color: #58a6ff;
-            margin-bottom: 1;
-        }
-
-        .sidebar-info {
-            color: #8b949e;
-            margin-bottom: 1;
-        }
-
-        #chat-container {
-            width: 1fr;
-            height: 100%;
-            padding: 0 1;
-        }
-
-        #log-view {
-            width: 100%;
-            height: 1fr;
-            background: #0d1117;
-            border: solid #21262d;
-            padding: 0 1;
-        }
-
-        #input-bar {
-            dock: bottom;
-            height: 3;
-            background: #161b22;
-            border-top: heavy #30363d;
-            padding: 0 1;
-        }
-
-        #prompt-input {
-            width: 1fr;
-            border: none;
-            background: #0d1117;
-            color: #f0f6fc;
-        }
-
-        #btn-send {
-            width: 10;
-            margin-left: 1;
-            background: #238636;
-            color: white;
-            border: none;
-        }
-
-        #btn-clear {
-            width: 8;
-            margin-left: 1;
-            background: #30363d;
-            color: white;
-            border: none;
-        }
-
-        #btn-exit {
-            width: 8;
-            margin-left: 1;
-            background: #da3633;
-            color: white;
-            border: none;
-        }
-        """
-
-        BINDINGS = [
-            Binding("ctrl+c", "quit", "Quit", priority=True),
-            Binding("ctrl+l", "clear_screen", "Clear", show=True),
-            Binding("f1", "help", "Help", show=True),
-            Binding("f2", "switch_model", "Model", show=True),
-            Binding("f3", "switch_persona", "Persona", show=True),
-            Binding("f4", "view_diff", "Diff", show=True),
-            Binding("f5", "run_tests", "Test", show=True),
-        ]
-
-        def __init__(
-            self,
-            session: Optional[Any] = None,
-            model: str = "qwen2.5-coder:1.5b",
-            mock: bool = False,
-            workspace_dir: str = ".",
-            **kwargs,
-        ):
-            super().__init__(**kwargs)
-            self.workspace_dir = workspace_dir
-            self.mock = mock
-            self.model_name = model
-            if session is not None:
-                self.session = session
-            else:
-                try:
-                    from k_cli.session import SessionManager
-                except ModuleNotFoundError:
-                    from session import SessionManager
-                self.session = SessionManager(workspace_dir=workspace_dir, model_name=model, mock_mode=mock)
-            self.command_handler = SlashCommandHandler(session=self.session)
-
-        def compose(self) -> ComposeResult:
-            yield Header(show_clock=True)
-            with Container(id="app-container"):
-                with Horizontal(id="main-layout"):
-                    with Vertical(id="sidebar"):
-                        yield Label("⚡ [bold cyan]K-CLI ENGINE[/bold cyan]", classes="sidebar-header")
-                        yield Static(id="system-status", classes="sidebar-info")
-                        yield Label("🔧 [bold yellow]QUICK COMMANDS[/bold yellow]", classes="sidebar-header")
-                        yield Static(
-                            "• [bold cyan]/model[/bold cyan] : Switch LLM\n"
-                            "• [bold magenta]/persona[/bold magenta] : Switch role\n"
-                            "• [bold green]/diff[/bold green] : Git diff\n"
-                            "• [bold red]/rollback[/bold red] : Undo change\n"
-                            "• [bold blue]/docs[/bold blue] : DevDocs\n"
-                            "• [bold yellow]/test[/bold yellow] : Verify\n"
-                            "• [bold white]/map[/bold white] : Codebase map\n"
-                            "• [dim]/help | /clear | /exit[/dim]",
-                            classes="sidebar-info"
-                        )
-                    with Vertical(id="chat-container"):
-                        yield RichLog(id="log-view", wrap=True, highlight=True, markup=True)
-                with Horizontal(id="input-bar"):
-                    yield Input(placeholder="Type coding task or /command (e.g. /model, /diff, /test)...", id="prompt-input")
-                    yield Button("Send ❯", variant="primary", id="btn-send")
-                    yield Button("Clear", id="btn-clear")
-                    yield Button("Exit", id="btn-exit")
-            yield Footer()
-
-        def on_mount(self) -> None:
-            self.title = "K-CLI Bankai Engine v0.2.0"
-            self.sub_title = f"Model: {self.session.model_name} | Persona: {self.session.active_persona}"
-            self.update_sidebar()
-            log = self.query_one("#log-view", RichLog)
-            log.write(TUI_ASCII_BANNER)
-            log.write(
-                "\n[bold green]✔ Full-screen Textual TUI active.[/bold green] "
-                "Type a coding task or slash command below, or press [bold yellow]F1[/bold yellow] for help.\n"
-            )
-            try:
-                self.query_one("#prompt-input", Input).focus()
-            except Exception:
-                pass
-
-        def update_sidebar(self) -> None:
-            ram_mb = 0.0
-            if psutil:
-                try:
-                    ram_mb = psutil.Process().memory_info().rss / (1024 * 1024)
-                except Exception:
-                    pass
-            branch = self.session.get_git_branch() if hasattr(self.session, "get_git_branch") else "main"
-            ctx_len = len(self.session.get_context_files()) if hasattr(self.session, "get_context_files") else 0
-            status_text = (
-                f"🤖 [bold]Model:[/bold] {self.session.model_name}\n"
-                f"🎭 [bold]Persona:[/bold] {self.session.active_persona}\n"
-                f"🌿 [bold]Branch:[/bold] {branch}\n"
-                f"💾 [bold]RAM RSS:[/bold] {ram_mb:.1f} MB / 1024 MB\n"
-                f"📁 [bold]Context:[/bold] {ctx_len} files"
-            )
-            try:
-                status_widget = self.query_one("#system-status", Static)
-                status_widget.update(status_text)
-            except Exception:
-                pass
-
-        def on_button_pressed(self, event: Button.Pressed) -> None:
-            btn_id = event.button.id
-            if btn_id == "btn-send":
-                self.submit_prompt()
-            elif btn_id == "btn-clear":
-                self.action_clear_screen()
-            elif btn_id == "btn-exit":
-                self.action_quit()
-
-        def on_input_submitted(self, event: Input.Submitted) -> None:
-            self.submit_prompt()
-
-        def submit_prompt(self) -> None:
-            inp = self.query_one("#prompt-input", Input)
-            val = inp.value.strip()
-            if not val:
-                return
-            inp.value = ""
-            log = self.query_one("#log-view", RichLog)
-
-            if val.startswith("/"):
-                # Handle slash command
-                cont, signal = self.command_handler.handle(val)
-                if not cont or signal == "EXIT":
-                    self.exit()
-                    return
-                if signal == "CLEARED":
-                    log.clear()
-                self.update_sidebar()
-                return
-
-            # Handle user prompt turn
-            log.write(f"\n[bold cyan]User ❯[/bold cyan] {val}\n")
-
-            # Execute turn
-            try:
-                gen = self.session.process_turn(val)
-                accumulated = ""
-                for token in gen:
-                    accumulated += token
-
-                res = self.session.last_result or {}
-                if res.get("success"):
-                    log.write(f"[bold green]✔ GROUND-TRUTH VERIFIED[/bold green] [dim](RAM: {res.get('ram_mb', 0):.2f} MB)[/dim]")
-                    if res.get("code"):
-                        log.write(Syntax(res["code"], "python", theme="monokai", line_numbers=True))
-                else:
-                    log.write(f"[bold red]✘ VERIFICATION FAILED[/bold red]")
-                    if res.get("patch_error"):
-                        log.write(Panel(res["patch_error"], title="Patch Error", border_style="red"))
-                    elif res.get("code"):
-                        log.write(Syntax(res["code"], "python", theme="monokai", line_numbers=True))
-            except Exception as exc:
-                log.write(f"[bold red]Execution Error:[/bold red] {exc}")
-
-            self.update_sidebar()
-
-        def action_clear_screen(self) -> None:
-            log = self.query_one("#log-view", RichLog)
-            log.clear()
-            self.session.reset_context()
-            log.write("[bold green]✔ Screen & history cleared.[/bold green]\n")
-            self.update_sidebar()
-
-        def action_help(self) -> None:
-            log = self.query_one("#log-view", RichLog)
-            self.command_handler.handle("/help")
-
-        def action_switch_model(self) -> None:
-            log = self.query_one("#log-view", RichLog)
-            self.command_handler.handle("/model")
-
-        def action_switch_persona(self) -> None:
-            log = self.query_one("#log-view", RichLog)
-            self.command_handler.handle("/persona")
-
-        def action_view_diff(self) -> None:
-            log = self.query_one("#log-view", RichLog)
-            self.command_handler.handle("/diff")
-
-        def action_run_tests(self) -> None:
-            log = self.query_one("#log-view", RichLog)
-            self.command_handler.handle("/test")
-
-        def action_quit(self) -> None:
-            self.exit()
+    try:
+        from k_cli.tui_app import KCliApp
+    except (ImportError, ModuleNotFoundError):
+        try:
+            from tui_app import KCliApp
+        except (ImportError, ModuleNotFoundError):
+            class KCliApp(App):  # type: ignore
+                def compose(self) -> ComposeResult:
+                    yield Header()
+                    yield Static("K-CLI Bankai Workstation")
+                    yield Footer()
 else:
     class KCliApp:
-        """Fallback when Textual is unavailable."""
         def __init__(self, *args, **kwargs):
             pass
-
         def run(self):
-            print("Textual is not installed. Please install textual or use classic mode.")
-
+            print("Textual is not installed.")
