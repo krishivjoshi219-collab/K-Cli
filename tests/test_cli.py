@@ -14,13 +14,22 @@ from typer.testing import CliRunner
 from rich.syntax import Syntax
 from rich.panel import Panel
 
-import k_cli.cli as cli_module
-from k_cli.cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff, interactive_mode
-from k_cli.orchestrator import Orchestrator, Persona
-from k_cli.llm_driver import LLMDriver
-from k_cli.verifier import Verifier
-from k_cli.doc_retriever import DocRetriever
-from k_cli.repo_map import RepoMap
+try:
+    import k_cli.cli as cli_module
+    from k_cli.cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff, interactive_mode
+    from k_cli.orchestrator import Orchestrator, Persona
+    from k_cli.llm_driver import LLMDriver
+    from k_cli.verifier import Verifier
+    from k_cli.doc_retriever import DocRetriever
+    from k_cli.repo_map import RepoMap
+except ModuleNotFoundError:
+    import cli as cli_module
+    from cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff, interactive_mode
+    from orchestrator import Orchestrator, Persona
+    from llm_driver import LLMDriver
+    from verifier import Verifier
+    from doc_retriever import DocRetriever
+    from repo_map import RepoMap
 
 runner = CliRunner()
 
