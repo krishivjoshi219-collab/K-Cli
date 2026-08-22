@@ -60,7 +60,7 @@ PERSONA_PROMPTS: Dict[Persona, str] = {
         "You are [ARCHITECT] persona for K-CLI AI Agent. "
         "Output a structured execution plan wrapped inside <think>...</think> tags, "
         "followed by a compact JSON architecture specification. "
-        "Ensure memory efficiency (< 1GB RAM). Do NOT output conversational fluff."
+        "Ensure computational and memory efficiency. Do NOT output conversational fluff."
     ),
     Persona.CODER: (
         "You are [CODER] persona for K-CLI AI Agent. "

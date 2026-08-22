@@ -133,7 +133,7 @@ MODEL_CATALOG_REGISTRY: Dict[str, ModelSpec] = {
         provider=ModelProvider.OLLAMA,
         context_window=32768,
         is_local=True,
-        description="Fastest lightweight local coding model (< 1GB RAM footprint)",
+        description="Fastest lightweight local coding model",
     ),
     "qwen2.5-coder:7b": ModelSpec(
         id="qwen2.5-coder:7b",

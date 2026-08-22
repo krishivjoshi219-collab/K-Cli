@@ -118,7 +118,7 @@ MODEL_PRESETS: List[Dict[str, str]] = [
     {"name": "Bankai-14B", "desc": "Project Bankai Flagship 14B Deep Reasoning Engine", "type": "SLM"},
     {"name": "Gemini", "desc": "Gemini 2.0 Flash / Pro (Cloud Multi-Modal & High-Throughput)", "type": "Cloud"},
     {"name": "Claude", "desc": "Claude 3.5 Sonnet (Advanced Agentic Architecture & Refactoring)", "type": "Cloud"},
-    {"name": "Local Ollama", "desc": "Local GGUF SLM (qwen2.5-coder:1.5b < 1GB RAM Budget)", "type": "Local"},
+    {"name": "Local Ollama", "desc": "Local GGUF SLM (e.g. qwen2.5-coder:1.5b / deepseek)", "type": "Local"},
 ]
 
 PERSONA_METADATA: Dict[str, Dict[str, str]] = {
@@ -128,7 +128,7 @@ PERSONA_METADATA: Dict[str, Dict[str, str]] = {
     "APPLICATION SECURITY ENGINEER": {"color": "red", "icon": "🛡️", "desc": "OWASP Top 10, HMAC, Auth middlewares, Constant-time crypto"},
     "FRONTEND & FULLSTACK ENGINEER": {"color": "green", "icon": "🎨", "desc": "React, Vite, Next.js, CSS layout, accessibility"},
     "DATABASE & QUERY OPTIMIZER": {"color": "yellow", "icon": "🗄️", "desc": "PostgreSQL, Redis, Spanner, SQL query optimization"},
-    "FULLSTACK AI SYSTEMS ENGINEER": {"color": "blue", "icon": "⚙", "desc": "Clean architecture, compiler-grounded verification (< 1GB RAM)"},
+    "FULLSTACK AI SYSTEMS ENGINEER": {"color": "blue", "icon": "⚙", "desc": "Clean architecture, compiler-grounded verification"},
     "RESEARCHER": {"color": "cyan", "icon": "🔍", "desc": "Extracts signatures, API dependencies, specifications"},
     "ARCHITECT": {"color": "magenta", "icon": "📐", "desc": "Designs modular architecture & execution plan"},
     "CODER": {"color": "green", "icon": "⚡", "desc": "Generates isolated, verified code implementation"},
@@ -298,7 +298,7 @@ def render_subagent_execution_tree(
             metrics_text.append(f"⏱️ {duration:.2f}s │ ", style="dim white")
         if tokens > 0:
             metrics_text.append(f"📊 {tokens} tokens │ ", style="dim white")
-        metrics_text.append("Budget: < 1GB RAM", style="dim #00ff88")
+        metrics_text.append("Verified Execution", style="dim #00ff88")
         node.add(metrics_text)
 
     return Panel(
@@ -1046,7 +1046,7 @@ class InteractiveShell:
                 clean_lower = prompt_input.lower().strip()
                 if clean_lower in ("yo", "hi", "hello", "hey", "sup", "howdy", "greetings"):
                     self.console.print(Panel(
-                        "[bold green]Yo! I'm K-CLI — your local, compiler-grounded AI coding assistant (< 1GB RAM).[/bold green]\n\n"
+                        "[bold green]Yo! I'm K-CLI — your universal, compiler-grounded AI coding assistant.[/bold green]\n\n"
                         "[bold cyan]What you can do right now:[/bold cyan]\n"
                         "• [bold]Write & Refactor Code[/bold]: Enter a coding task (e.g. [italic]write a function to parse jwt tokens[/italic]).\n"
                         "• [bold]/model[/bold]: Switch active model (Bankai-7B, Bankai-14B, Gemini, Claude, Local Ollama).\n"
@@ -1121,7 +1121,7 @@ TUI_ASCII_BANNER = r"""[bold cyan]
   ██╔═██╗   ██║     ██║     ██║
   ██║  ██╗  ╚██████╗███████╗██║
   ╚═╝  ╚═╝   ╚═════╝╚══════╝╚═╝
-[/bold cyan][bold bright_white]PROJECT BANKAI ENGINE v0.2.0 | Compiler Guard (< 1GB RAM)[/bold bright_white]"""
+[/bold cyan][bold bright_white]K-CLI AGENTIC WORKSTATION v0.4.0 | Verification-First Engine[/bold bright_white]"""
 
 if HAS_TEXTUAL:
     try:

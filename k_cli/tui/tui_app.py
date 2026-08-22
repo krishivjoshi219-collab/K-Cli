@@ -2,7 +2,7 @@
 tui_app.py - Flagship Hybrid Developer Workstation for K-CLI (Project Bankai v0.4.0)
 
 A fusion of Claude Code, Google Antigravity (AGY), GitHub Copilot CLI, and Cursor:
-1. Top Cyber HUD: Active Model Dropdown, Git Branch Pill with diff stats, RAM RSS Gauge (< 1GB), Speedometer (tok/s), USD Cost Ticker, Verifier Badge.
+1. Top Cyber HUD: Active Model Dropdown, Git Branch Pill with diff stats, RAM RSS Gauge, Speedometer (tok/s), USD Cost Ticker, Verifier Badge.
 2. 3-Column Workstation Layout:
    - Left Column: Antigravity Navigator (1-Click Action Launcher, @Context Files Manager, Subagent Swarm Radar, MCP Server Inventory).
    - Center Column: Claude Code & Copilot Stream Canvas (Collapsible <think> drawer, Tool Execution Cards with Allow/Deny gates, Surgical Diff Cards with 1-click Apply/Rollback).

@@ -234,7 +234,7 @@ except (ModuleNotFoundError, ImportError):
 
 app = typer.Typer(
     name="k-cli",
-    help="K-CLI: Local, compiler-grounded AI coding agent (< 1GB RAM budget).",
+    help="K-CLI: Universal agentic AI coding workstation.",
     add_completion=False,
 )
 console = Console()
@@ -248,8 +248,8 @@ ASCII_BANNER = r"""
   ██║  ██╗  ╚██████╗███████╗██║
   ╚═╝  ╚═╝   ╚═════╝╚══════╝╚═╝
 [/bold cyan]
-[bold bright_white]PROJECT BANKAI ENGINE v0.2.0 | Flagship Compiler Guard (< 1GB RAM)[/bold bright_white]
-[dim]Commands: /model | /persona | /diff | /rollback | /docs | /clear | /test | /help | /exit[/dim]
+[bold bright_white]K-CLI AGENTIC WORKSTATION v0.4.0 | Verification-First Engine[/bold bright_white]
+[dim]Commands: /keys | /conflict | /gh | /model | /security | /clear | /test | /help | /exit[/dim]
 """
 
 

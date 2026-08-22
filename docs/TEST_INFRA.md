@@ -20,7 +20,7 @@
 | 6 | Multi-Turn Session & Token Pruning | ORIGINAL_REQUEST §R5 | 5 | 5 | ✓ |
 | 7 | REPL Slash Commands Hub | ORIGINAL_REQUEST §R5 | 5 | 5 | ✓ |
 | 8 | CLI Single-Shot Command Execution | ORIGINAL_REQUEST §R5 | 5 | 5 | ✓ |
-| 9 | Performance Budgets (<1GB RAM, <5ms FTS5, <250ms Map) | ORIGINAL_REQUEST §Acceptance | 5 | 5 | ✓ |
+| 9 | Performance Benchmarks (RSS Memory, <5ms FTS5, <250ms Map) | ORIGINAL_REQUEST §Acceptance | 5 | 5 | ✓ |
 
 ## Test Architecture
 - Test runner: `/home/k/e/bin/pytest tests/test_e2e_suite.py`

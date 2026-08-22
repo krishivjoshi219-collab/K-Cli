@@ -631,7 +631,7 @@ class TestTier1CLICommands:
 
 
 class TestTier1PerformanceBudgets:
-    """Tier 1: Feature 9 - Performance Budgets (<1GB RAM, <5ms FTS5, <250ms Map)."""
+    """Tier 1: Feature 9 - Performance Benchmarks (RSS Memory, <5ms FTS5, <250ms Map)."""
 
     def test_t1_f9_perf_rss_memory_under_1024mb(self):
         process = psutil.Process(os.getpid())

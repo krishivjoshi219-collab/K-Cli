@@ -1146,7 +1146,7 @@ class PatchAggregator:
 class SubagentDispatcher:
     """
     Schedules and executes SubagentTasks across parallel background worker threads.
-    Respects task dependencies (DAG) and enforces RAM budget (< 1GB).
+    Respects task dependencies (DAG) and optimizes thread resource usage.
     """
 
     def __init__(

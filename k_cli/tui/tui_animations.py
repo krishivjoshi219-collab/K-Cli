@@ -176,8 +176,8 @@ CYBER_ASCII_SUBAGENTS = r"""
 
 
 def render_cyber_banner(
-    title: str = "K-CLI // PROJECT BANKAI",
-    subtitle: str = "Compiler Guard (< 1GB RAM Budget) • Autonomous Architecture",
+    title: str = "K-CLI // AGENTIC WORKSTATION",
+    subtitle: str = "Compiler Guard • Verification-First Architecture",
     palette: str = "neon_cyan",
     border_style: str = "#00f0ff",
     glitch_step: int = 0,

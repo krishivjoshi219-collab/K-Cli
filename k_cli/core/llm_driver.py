@@ -8,7 +8,6 @@ Supported Inference Backends:
 4. Anthropic Claude (Claude 3.7 Sonnet, Claude 3.5 Haiku, streaming)
 5. OpenAI / DeepSeek / OpenRouter compatible REST API endpoints
 6. Multi-tier auto-fallback routing hierarchy with full streaming token preservation
-Memory Efficient (< 1GB RAM footprint)
 """
 
 import json
@@ -925,7 +924,7 @@ class LLMDriver:
         sys_lower = (system_prompt or "").lower()
 
         if "[researcher]" in sys_lower or "phase (researcher)" in sys_lower or sys_lower.startswith("you are [researcher]"):
-            text = "- Task: Python code implementation\n- Module: sys, psutil, time\n- Return type: clean Python script\n- RAM limit: < 1GB"
+            text = "- Task: Python code implementation\n- Module: sys, psutil, time\n- Return type: clean Python script\n- Resource optimization: high efficiency"
         elif "[critic]" in sys_lower or "phase (critic)" in sys_lower or sys_lower.startswith("you are [critic]"):
             text = "VALIDATED: Code structure is sound, handles missing psutil gracefully, memory usage < 10MB."
         elif "[debugger]" in sys_lower or "phase (debugger)" in sys_lower or sys_lower.startswith("you are [debugger]"):
