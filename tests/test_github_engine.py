@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from k_cli.github_engine import (
+from k_cli.github.github_engine import (
     GitHubEngine,
     GitHubIssue,
     GitHubRelease,

@@ -15,11 +15,11 @@ from rich.syntax import Syntax
 from rich.panel import Panel
 
 from k_cli.cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff, interactive_mode
-from k_cli.orchestrator import Orchestrator, Persona
-from k_cli.llm_driver import LLMDriver
-from k_cli.verifier import Verifier
-from k_cli.doc_retriever import DocRetriever
-from k_cli.repo_map import RepoMap
+from k_cli.agents.orchestrator import Orchestrator, Persona
+from k_cli.core.llm_driver import LLMDriver
+from k_cli.git.verifier import Verifier
+from k_cli.tools.doc_retriever import DocRetriever
+from k_cli.git.repo_map import RepoMap
 
 runner = CliRunner()
 

@@ -22,15 +22,15 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from diff_viewer import DiffVisualizer
-from tui import (
+from k_cli.tui.diff_viewer import DiffVisualizer
+from k_cli.tui.tui import (
     StatusBar,
     LiveStreamRenderer,
     SlashCommandHandler,
     MODEL_PRESETS,
     get_persona_style,
 )
-from session import SessionManager
+from k_cli.core.session import SessionManager
 
 try:
     from tui import SlashCommandCompleter

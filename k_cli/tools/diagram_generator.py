@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Safe import for RepoMap
 try:
-    from k_cli.repo_map import RepoMap
+    from k_cli.git.repo_map import RepoMap
 except (ModuleNotFoundError, ImportError):
     try:
         from repo_map import RepoMap

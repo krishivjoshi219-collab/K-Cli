@@ -28,10 +28,10 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 # Core Engine Imports (Present in Baseline)
-from verifier import CodeExtractor, VerificationResult, Verifier
-from orchestrator import Orchestrator, Persona
-from llm_driver import LLMDriver
-from cli import app
+from k_cli.git.verifier import CodeExtractor, VerificationResult, Verifier
+from k_cli.agents.orchestrator import Orchestrator, Persona
+from k_cli.core.llm_driver import LLMDriver
+from k_cli.cli import app
 
 # Progressive Testability Dynamic Loaders for Domain Modules (M2 - M5)
 def get_doc_retriever_cls():

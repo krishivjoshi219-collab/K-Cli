@@ -19,20 +19,20 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 try:
-    from k_cli.llm_driver import LLMDriver
-    from k_cli.verifier import CodeExtractor, VerificationResult, Verifier
-    from k_cli.persona import DomainPersona, PersonaProfile, PersonaRegistry
-    from k_cli.dedup_engine import DedupEngine, DedupMatch
-    from k_cli.mcp_client import MCPManager
+    from k_cli.core.llm_driver import LLMDriver
+    from k_cli.git.verifier import CodeExtractor, VerificationResult, Verifier
+    from k_cli.agents.persona import DomainPersona, PersonaProfile, PersonaRegistry
+    from k_cli.github.dedup_engine import DedupEngine, DedupMatch
+    from k_cli.tools.mcp_client import MCPManager
 except (ModuleNotFoundError, ImportError):
     try:
-        from llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
         from verifier import CodeExtractor, VerificationResult, Verifier
         from persona import DomainPersona, PersonaProfile, PersonaRegistry
         from dedup_engine import DedupEngine, DedupMatch
         from mcp_client import MCPManager
     except (ModuleNotFoundError, ImportError):
-        from llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
         from verifier import CodeExtractor, VerificationResult, Verifier
         PersonaProfile = Any  # type: ignore
         PersonaRegistry = None  # type: ignore
@@ -318,7 +318,7 @@ class Orchestrator:
         Executes parallel multi-agent decomposition and synthesis using SubagentDispatcher.
         """
         try:
-            from k_cli.subagents import SubagentDispatcher, SubagentVisualizer
+            from k_cli.agents.subagents import SubagentDispatcher, SubagentVisualizer
         except ModuleNotFoundError:
             from subagents import SubagentDispatcher, SubagentVisualizer
 

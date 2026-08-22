@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Safe relative / package imports
 try:
-    from k_cli.git_guard import GitGuard
+    from k_cli.git.git_guard import GitGuard
 except (ModuleNotFoundError, ImportError):
     try:
         from git_guard import GitGuard
@@ -35,10 +35,10 @@ except (ModuleNotFoundError, ImportError):
         GitGuard = None  # type: ignore
 
 try:
-    from k_cli.llm_driver import LLMDriver
+    from k_cli.core.llm_driver import LLMDriver
 except (ModuleNotFoundError, ImportError):
     try:
-        from llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
     except (ModuleNotFoundError, ImportError):
         LLMDriver = None  # type: ignore
 

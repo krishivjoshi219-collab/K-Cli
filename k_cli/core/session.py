@@ -18,14 +18,14 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
 
 try:
-    from k_cli.doc_retriever import DocRetriever
-    from k_cli.repo_map import RepoMap
-    from k_cli.patcher import Patcher
-    from k_cli.git_guard import GitGuard
-    from k_cli.verifier import Verifier, CodeExtractor
-    from k_cli.orchestrator import Orchestrator, Persona, OrchestratorResult
-    from k_cli.llm_driver import LLMDriver
-    from k_cli.persona import DomainPersona, PersonaProfile, PersonaRegistry
+    from k_cli.tools.doc_retriever import DocRetriever
+    from k_cli.git.repo_map import RepoMap
+    from k_cli.git.patcher import Patcher
+    from k_cli.git.git_guard import GitGuard
+    from k_cli.git.verifier import Verifier, CodeExtractor
+    from k_cli.agents.orchestrator import Orchestrator, Persona, OrchestratorResult
+    from k_cli.core.llm_driver import LLMDriver
+    from k_cli.agents.persona import DomainPersona, PersonaProfile, PersonaRegistry
 except (ModuleNotFoundError, ImportError):
     try:
         from doc_retriever import DocRetriever
@@ -34,7 +34,7 @@ except (ModuleNotFoundError, ImportError):
         from git_guard import GitGuard
         from verifier import Verifier, CodeExtractor
         from orchestrator import Orchestrator, Persona, OrchestratorResult
-        from llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
         from persona import DomainPersona, PersonaProfile, PersonaRegistry
     except (ModuleNotFoundError, ImportError):
         from doc_retriever import DocRetriever
@@ -43,7 +43,7 @@ except (ModuleNotFoundError, ImportError):
         from git_guard import GitGuard
         from verifier import Verifier, CodeExtractor
         from orchestrator import Orchestrator, Persona, OrchestratorResult
-        from llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
         PersonaProfile = Any  # type: ignore
         PersonaRegistry = None  # type: ignore
         DomainPersona = None  # type: ignore
@@ -540,7 +540,7 @@ class SessionManager:
             if not arg:
                 return True, "Usage: /spawn <prompt> (or /subagents <prompt>)"
             try:
-                from k_cli.subagents import execute_subagents
+                from k_cli.agents.subagents import execute_subagents
             except ModuleNotFoundError:
                 from subagents import execute_subagents
             res = execute_subagents(

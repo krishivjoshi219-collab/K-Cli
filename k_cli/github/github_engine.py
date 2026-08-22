@@ -362,11 +362,11 @@ class GitHubEngine:
         4. Synthesizes surgical patch & verifies with Verifier test suite.
         5. Commits atomic change and opens Pull Request referencing 'Closes #<num>'.
         """
-        from k_cli.verifier import Verifier
-        from k_cli.patcher import Patcher
-        from k_cli.llm_driver import LLMDriver
-        from k_cli.repo_map import RepoMap
-        from k_cli.github_client import GitHubClient
+        from k_cli.git.verifier import Verifier
+        from k_cli.git.patcher import Patcher
+        from k_cli.core.llm_driver import LLMDriver
+        from k_cli.git.repo_map import RepoMap
+        from k_cli.github.github_client import GitHubClient
 
         issue = self.get_issue(issue_number)
         branch_name = f"fix/issue-{issue_number}"

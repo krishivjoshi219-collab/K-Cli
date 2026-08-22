@@ -36,17 +36,17 @@ for p in [_this_file.parent.parent, _k_cli_dir, _root_dir]:
 
 try:
     from k_cli.cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff
-    from k_cli.session import SessionManager
-    from k_cli.orchestrator import Orchestrator, Persona, OrchestratorResult, PERSONA_PROMPTS
-    from k_cli.llm_driver import LLMDriver
-    from k_cli.verifier import Verifier, VerificationResult, CodeExtractor
-    from k_cli.patcher import Patcher
-    from k_cli.git_guard import GitGuard
-    from k_cli.repo_map import RepoMap
-    from k_cli.doc_retriever import DocRetriever
-    from k_cli.persona import DomainPersona, PersonaProfile, PersonaRegistry
+    from k_cli.core.session import SessionManager
+    from k_cli.agents.orchestrator import Orchestrator, Persona, OrchestratorResult, PERSONA_PROMPTS
+    from k_cli.core.llm_driver import LLMDriver
+    from k_cli.git.verifier import Verifier, VerificationResult, CodeExtractor
+    from k_cli.git.patcher import Patcher
+    from k_cli.git.git_guard import GitGuard
+    from k_cli.git.repo_map import RepoMap
+    from k_cli.tools.doc_retriever import DocRetriever
+    from k_cli.agents.persona import DomainPersona, PersonaProfile, PersonaRegistry
 except (ModuleNotFoundError, ImportError):
-    from cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff
+    from k_cli.cli import app, execute_run, print_banner, _resolve_val, get_persona_color, compute_diff
     from session import SessionManager
     from orchestrator import Orchestrator, Persona, OrchestratorResult, PERSONA_PROMPTS
     from llm_driver import LLMDriver

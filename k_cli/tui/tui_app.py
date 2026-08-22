@@ -60,19 +60,19 @@ from rich.text import Text
 
 # K-CLI Core Engines
 try:
-    from k_cli.llm_driver import LLMDriver, ProviderType
-    from k_cli.models_hub import ModelHub, ModelSpec, ModelProvider, ModelBenchmarkResult
-    from k_cli.github_engine import GitHubEngine, GitHubIssue, GitHubRelease, WorkflowRun, IssueSolveResult
-    from k_cli.conflict_resolver import ConflictResolver, ConflictBlock, ConflictResolution, FileResolutionResult, ConflictSummary
-    from k_cli.mcp_client import MCPManager
-    from k_cli.dedup_engine import DedupEngine
-    from k_cli.smart_git import SmartGitEngine
-    from k_cli.security_healer import SecurityHealer, SecurityScanReport, VulnerabilityHealResult
-    from k_cli.incident_triage import IncidentTriageEngine, IncidentReport
-    from k_cli.diagram_generator import DiagramGenerator
-    from k_cli.verifier import Verifier
-    from k_cli.patcher import Patcher
-    from k_cli.session import SessionManager
+    from k_cli.core.llm_driver import LLMDriver, ProviderType
+    from k_cli.core.models_hub import ModelHub, ModelSpec, ModelProvider, ModelBenchmarkResult
+    from k_cli.github.github_engine import GitHubEngine, GitHubIssue, GitHubRelease, WorkflowRun, IssueSolveResult
+    from k_cli.git.conflict_resolver import ConflictResolver, ConflictBlock, ConflictResolution, FileResolutionResult, ConflictSummary
+    from k_cli.tools.mcp_client import MCPManager
+    from k_cli.github.dedup_engine import DedupEngine
+    from k_cli.git.smart_git import SmartGitEngine
+    from k_cli.tools.security_healer import SecurityHealer, SecurityScanReport, VulnerabilityHealResult
+    from k_cli.tools.incident_triage import IncidentTriageEngine, IncidentReport
+    from k_cli.tools.diagram_generator import DiagramGenerator
+    from k_cli.git.verifier import Verifier
+    from k_cli.git.patcher import Patcher
+    from k_cli.core.session import SessionManager
 except (ModuleNotFoundError, ImportError):
     pass
 

@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from k_cli.github_client import (
+from k_cli.github.github_client import (
     CIStatus,
     GitHubAPIError,
     GitHubAuthError,
@@ -29,7 +29,7 @@ from k_cli.github_client import (
     discover_github_token,
     infer_repo_from_git,
 )
-from k_cli.verifier import VerificationResult
+from k_cli.git.verifier import VerificationResult
 
 
 # =============================================================================

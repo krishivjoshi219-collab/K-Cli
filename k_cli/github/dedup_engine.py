@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 try:
-    from k_cli.repo_map import RepoMap
+    from k_cli.git.repo_map import RepoMap
 except ModuleNotFoundError:
     try:
         from repo_map import RepoMap

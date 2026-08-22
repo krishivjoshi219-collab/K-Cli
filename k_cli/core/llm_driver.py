@@ -21,7 +21,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 try:
-    from k_cli.verifier import CodeExtractor, VerificationResult, Verifier
+    from k_cli.git.verifier import CodeExtractor, VerificationResult, Verifier
 except ModuleNotFoundError:
     try:
         from verifier import CodeExtractor, VerificationResult, Verifier
@@ -29,7 +29,7 @@ except ModuleNotFoundError:
         pass
 
 try:
-    from k_cli.model_manager import ModelManager
+    from k_cli.core.model_manager import ModelManager
 except (ModuleNotFoundError, ImportError):
     try:
         from model_manager import ModelManager

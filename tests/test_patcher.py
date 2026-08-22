@@ -6,7 +6,7 @@ import ast
 from pathlib import Path
 import pytest
 
-from patcher import Patcher
+from k_cli.git.patcher import Patcher
 
 
 class TestSearchReplaceParsing:

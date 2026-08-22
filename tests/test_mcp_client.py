@@ -29,7 +29,7 @@ import pytest
 from typer.testing import CliRunner
 
 from k_cli.cli import app
-from k_cli.mcp_client import (
+from k_cli.tools.mcp_client import (
     BaseClientTransport,
     HttpClientTransport,
     MCPClient,

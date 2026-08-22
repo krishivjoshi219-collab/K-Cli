@@ -31,8 +31,8 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from doc_retriever import DocRetriever, DEFAULT_STDLIB_MODULES
-from repo_map import RepoMap
+from k_cli.tools.doc_retriever import DocRetriever, DEFAULT_STDLIB_MODULES
+from k_cli.git.repo_map import RepoMap
 
 
 # ==============================================================================

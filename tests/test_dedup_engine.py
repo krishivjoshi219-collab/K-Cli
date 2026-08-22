@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from k_cli.dedup_engine import (
+from k_cli.github.dedup_engine import (
     CommitRecord,
     DedupEngine,
     DedupMatch,

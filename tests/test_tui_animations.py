@@ -27,7 +27,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from k_cli.tui_animations import (
+from k_cli.tui.tui_animations import (
     CYBER_PALETTES,
     AnimatedSpinner,
     CostTicker,
@@ -50,7 +50,7 @@ from k_cli.tui_animations import (
     render_hud_status_bar,
     rgb_to_hex,
 )
-from k_cli.tui import (
+from k_cli.tui.tui import (
     render_instant_diff_card,
     render_subagent_execution_tree,
     StatusBar,

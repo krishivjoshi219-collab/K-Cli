@@ -31,7 +31,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from k_cli.security_healer import (
+from k_cli.tools.security_healer import (
     SecurityHealer,
     SecurityScanReport,
     VulnerabilityFinding,
@@ -39,8 +39,8 @@ from k_cli.security_healer import (
     VulnerabilitySeverity,
     VulnerabilityType,
 )
-from k_cli.verifier import Verifier
-from k_cli.patcher import Patcher
+from k_cli.git.verifier import Verifier
+from k_cli.git.patcher import Patcher
 from k_cli.cli import app
 
 runner = CliRunner()

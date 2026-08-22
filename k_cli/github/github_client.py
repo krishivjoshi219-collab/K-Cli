@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 try:
-    from k_cli.git_guard import GitGuard
+    from k_cli.git.git_guard import GitGuard
 except (ModuleNotFoundError, ImportError):
     try:
         from git_guard import GitGuard
@@ -35,7 +35,7 @@ except (ModuleNotFoundError, ImportError):
         GitGuard = None  # type: ignore
 
 try:
-    from k_cli.verifier import VerificationResult, Verifier
+    from k_cli.git.verifier import VerificationResult, Verifier
 except (ModuleNotFoundError, ImportError):
     try:
         from verifier import VerificationResult, Verifier
@@ -44,7 +44,7 @@ except (ModuleNotFoundError, ImportError):
         VerificationResult = None  # type: ignore
 
 try:
-    from k_cli.patcher import FilePatch, Patcher
+    from k_cli.git.patcher import FilePatch, Patcher
 except (ModuleNotFoundError, ImportError):
     try:
         from patcher import FilePatch, Patcher
@@ -53,10 +53,10 @@ except (ModuleNotFoundError, ImportError):
         FilePatch = None  # type: ignore
 
 try:
-    from k_cli.llm_driver import LLMDriver
+    from k_cli.core.llm_driver import LLMDriver
 except (ModuleNotFoundError, ImportError):
     try:
-        from llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
     except (ModuleNotFoundError, ImportError):
         LLMDriver = None  # type: ignore
 

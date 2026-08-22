@@ -16,9 +16,9 @@ if str(_parent_dir) not in sys.path:
 import pytest
 
 try:
-    from k_cli.llm_driver import LLMDriver
-    from k_cli.orchestrator import Orchestrator, OrchestratorResult, Persona
-    from k_cli.verifier import VerificationResult, Verifier
+    from k_cli.core.llm_driver import LLMDriver
+    from k_cli.agents.orchestrator import Orchestrator, OrchestratorResult, Persona
+    from k_cli.git.verifier import VerificationResult, Verifier
 except ModuleNotFoundError:
     from llm_driver import LLMDriver
     from orchestrator import Orchestrator, OrchestratorResult, Persona

@@ -20,13 +20,13 @@ import pytest
 from typer.testing import CliRunner
 
 from k_cli.cli import app
-from k_cli.model_manager import (
+from k_cli.core.model_manager import (
     DEFAULT_CHATML_TEMPLATE,
     MODEL_CATALOG,
     ModelManager,
     ModelPullResult,
 )
-from k_cli.llm_driver import LLMDriver
+from k_cli.core.llm_driver import LLMDriver
 
 runner = CliRunner()
 

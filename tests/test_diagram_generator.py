@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from k_cli.diagram_generator import DiagramGenerator, DiagramType
+from k_cli.tools.diagram_generator import DiagramGenerator, DiagramType
 
 
 @pytest.fixture

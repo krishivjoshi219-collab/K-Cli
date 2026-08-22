@@ -35,18 +35,18 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 try:
-    from k_cli.doc_retriever import DocRetriever
-    from k_cli.llm_driver import LLMDriver
-    from k_cli.patcher import Patcher
-    from k_cli.repo_map import RepoMap
-    from k_cli.verifier import CodeExtractor, VerificationResult, Verifier
-    from k_cli.conflict_resolver import ConflictResolver, ConflictBlock, ConflictSummary, FileResolutionResult
-    from k_cli.github_client import GitHubClient, PRLifecycleManager, PRReviewResult, PRFixResult
-    from k_cli.mcp_client import MCPManager, MCPClient, MCPTool, MCPToolResult
-    from k_cli.dedup_engine import DedupEngine, DedupMatch
+    from k_cli.tools.doc_retriever import DocRetriever
+    from k_cli.core.llm_driver import LLMDriver
+    from k_cli.git.patcher import Patcher
+    from k_cli.git.repo_map import RepoMap
+    from k_cli.git.verifier import CodeExtractor, VerificationResult, Verifier
+    from k_cli.git.conflict_resolver import ConflictResolver, ConflictBlock, ConflictSummary, FileResolutionResult
+    from k_cli.github.github_client import GitHubClient, PRLifecycleManager, PRReviewResult, PRFixResult
+    from k_cli.tools.mcp_client import MCPManager, MCPClient, MCPTool, MCPToolResult
+    from k_cli.github.dedup_engine import DedupEngine, DedupMatch
 except ModuleNotFoundError:
     from doc_retriever import DocRetriever
-    from llm_driver import LLMDriver
+    from k_cli.core.llm_driver import LLMDriver
     from patcher import Patcher
     from repo_map import RepoMap
     from verifier import CodeExtractor, VerificationResult, Verifier

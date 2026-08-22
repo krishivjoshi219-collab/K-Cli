@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from k_cli.models_hub import (
+from k_cli.core.models_hub import (
     ModelBenchmarkResult,
     ModelHub,
     ModelProvider,

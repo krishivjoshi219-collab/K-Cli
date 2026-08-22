@@ -4,10 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "k-cli"
-version = "0.3.0"
-description = "K-CLI: verification-first local AI coding agent"
+version = "0.4.0"
+description = "K-CLI: AI-powered agentic developer workstation for the terminal"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { file = "LICENSE" }
+keywords = ["ai", "cli", "developer-tools", "github", "agentic", "tui", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Terminals",
+]
 dependencies = [
     "typer>=0.9.0",
     "rich>=13.0.0",
@@ -20,39 +32,16 @@ dependencies = [
 ]
 
 [project.scripts]
-k-cli = "cli:app"
+k-cli = "k_cli.cli:app"
 
-[tool.setuptools]
-py-modules = [
-    "cli",
-    "session",
-    "orchestrator",
-    "verifier",
-    "patcher",
-    "git_guard",
-    "repo_map",
-    "doc_retriever",
-    "llm_driver",
-    "diff_viewer",
-    "tui",
-    "model_manager",
-    "persona",
-    "subagents",
-    "tui_app",
-    "workflow",
-    "audit",
-    "prompting",
-    "security",
-    "feature",
-    "rules",
-    "conflict_resolver",
-    "github_client",
-    "dedup_engine",
-    "incident_triage",
-    "diagram_generator",
-    "smart_git",
-    "security_healer",
-]
+[project.urls]
+Homepage = "https://github.com/krishivjoshi219-collab/K-Cli"
+Repository = "https://github.com/krishivjoshi219-collab/K-Cli"
+Issues = "https://github.com/krishivjoshi219-collab/K-Cli/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["k_cli*"]
 
 [tool.setuptools.exclude-package-data]
 "*" = ["__pycache__/*", "*.pyc"]
@@ -62,4 +51,4 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-pythonpath = ["..", "."]
+pythonpath = ["."]

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 # Safe relative / package imports
 try:
-    from k_cli.verifier import VerificationResult, Verifier
+    from k_cli.git.verifier import VerificationResult, Verifier
 except (ModuleNotFoundError, ImportError):
     try:
         from verifier import VerificationResult, Verifier
@@ -43,7 +43,7 @@ except (ModuleNotFoundError, ImportError):
         Verifier = None  # type: ignore
 
 try:
-    from k_cli.patcher import FilePatch, PatchResult, Patcher
+    from k_cli.git.patcher import FilePatch, PatchResult, Patcher
 except (ModuleNotFoundError, ImportError):
     try:
         from patcher import FilePatch, PatchResult, Patcher
@@ -53,10 +53,10 @@ except (ModuleNotFoundError, ImportError):
         Patcher = None  # type: ignore
 
 try:
-    from k_cli.llm_driver import LLMDriver
+    from k_cli.core.llm_driver import LLMDriver
 except (ModuleNotFoundError, ImportError):
     try:
-        from llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
     except (ModuleNotFoundError, ImportError):
         LLMDriver = None  # type: ignore
 

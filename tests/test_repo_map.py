@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from k_cli.repo_map import RepoMap
+from k_cli.git.repo_map import RepoMap
 
 
 # ==============================================================================

@@ -9,15 +9,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from k_cli.incident_triage import (
+from k_cli.tools.incident_triage import (
     IncidentHealResult,
     IncidentReport,
     IncidentTriageEngine,
     LogType,
     StackFrame,
 )
-from k_cli.patcher import Patcher
-from k_cli.verifier import VerificationResult, Verifier
+from k_cli.git.patcher import Patcher
+from k_cli.git.verifier import VerificationResult, Verifier
 
 
 @pytest.fixture

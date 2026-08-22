@@ -19,12 +19,12 @@ import pytest
 from typer.testing import CliRunner
 
 from k_cli.cli import app
-from k_cli.conflict_resolver import ConflictResolver, ConflictBlock, FileResolutionResult
-from k_cli.github_client import GitHubClient, MockGitHubClient, PRLifecycleManager, PullRequest
-from k_cli.mcp_client import MCPManager, MCPServerConfig, MCPTool, MCPToolResult
-from k_cli.dedup_engine import DedupEngine, DedupMatch
-from k_cli.orchestrator import Orchestrator, Persona
-from k_cli.subagents import (
+from k_cli.git.conflict_resolver import ConflictResolver, ConflictBlock, FileResolutionResult
+from k_cli.github.github_client import GitHubClient, MockGitHubClient, PRLifecycleManager, PullRequest
+from k_cli.tools.mcp_client import MCPManager, MCPServerConfig, MCPTool, MCPToolResult
+from k_cli.github.dedup_engine import DedupEngine, DedupMatch
+from k_cli.agents.orchestrator import Orchestrator, Persona
+from k_cli.agents.subagents import (
     SubagentDispatcher,
     SubagentWorker,
     SubagentTask,
@@ -32,9 +32,9 @@ from k_cli.subagents import (
     SubagentStatus,
     TaskDecomposer,
 )
-from k_cli.workflow import create_plan
-from k_cli.verifier import Verifier
-from k_cli.llm_driver import LLMDriver
+# REMOVED: from k_cli.workflow import create_plan
+from k_cli.git.verifier import Verifier
+from k_cli.core.llm_driver import LLMDriver
 
 runner = CliRunner()
 

@@ -29,7 +29,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from k_cli.smart_git import (
+from k_cli.git.smart_git import (
     AtomicCommitGroup,
     CommitType,
     FileChangeAnalysis,

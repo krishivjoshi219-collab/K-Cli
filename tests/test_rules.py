@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from rules import MAX_RULE_BYTES, load_project_rules
+# REMOVED: from rules import MAX_RULE_BYTES, load_project_rules
 
 
 def test_load_project_rules_is_bounded_and_labeled(tmp_path: Path):

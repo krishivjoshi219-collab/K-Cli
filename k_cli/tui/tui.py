@@ -50,10 +50,10 @@ except (ImportError, ModuleNotFoundError):
     App = object  # type: ignore
 
 try:
-    from k_cli.diff_viewer import DiffVisualizer
-    from k_cli.orchestrator import Persona
-    from k_cli.persona import DomainPersona, PersonaProfile, PersonaRegistry
-    from k_cli.tui_animations import (
+    from k_cli.tui.diff_viewer import DiffVisualizer
+    from k_cli.agents.orchestrator import Persona
+    from k_cli.agents.persona import DomainPersona, PersonaProfile, PersonaRegistry
+    from k_cli.tui.tui_animations import (
         AnimatedSpinner,
         CostTicker,
         GlowBadgeStatus,
@@ -718,7 +718,7 @@ class SlashCommandHandler:
 
         # /conflict
         if cmd in ("conflict", "conflicts"):
-            from k_cli.conflict_resolver import ConflictResolver
+            from k_cli.git.conflict_resolver import ConflictResolver
             res = ConflictResolver().find_conflicts()
             if not res:
                 self.console.print("[bold green]✔ Zero git merge conflicts in repository.[/bold green]")
@@ -728,7 +728,7 @@ class SlashCommandHandler:
 
         # /gh or /github
         if cmd in ("gh", "github", "issues", "prs"):
-            from k_cli.github_engine import GitHubEngine
+            from k_cli.github.github_engine import GitHubEngine
             engine = GitHubEngine()
             issues = engine.list_issues(limit=5)
             self.console.print(f"[bold cyan]🐙 GitHub Issues ({len(issues)} listed):[/bold cyan]")
@@ -740,9 +740,9 @@ class SlashCommandHandler:
         if cmd in ("solve", "fix_issue") and arg:
             try:
                 num = int(arg.strip("#"))
-                from k_cli.github_engine import GitHubEngine
-                from k_cli.verifier import Verifier
-                from k_cli.patcher import Patcher
+                from k_cli.github.github_engine import GitHubEngine
+                from k_cli.git.verifier import Verifier
+                from k_cli.git.patcher import Patcher
                 self.console.print(f"[bold cyan]Autonomously investigating issue #{num}...[/bold cyan]")
                 res = GitHubEngine().solve_issue(issue_number=num, llm_driver=self.session.driver, verifier=Verifier(), patcher=Patcher(), auto_pr=True)
                 if res.success:
@@ -1125,7 +1125,7 @@ TUI_ASCII_BANNER = r"""[bold cyan]
 
 if HAS_TEXTUAL:
     try:
-        from k_cli.tui_app import KCliApp
+        from k_cli.tui.tui_app import KCliApp
     except (ImportError, ModuleNotFoundError):
         try:
             from tui_app import KCliApp

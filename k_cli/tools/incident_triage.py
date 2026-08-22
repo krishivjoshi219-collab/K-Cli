@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 # Safe relative imports for K-CLI components
 try:
-    from k_cli.verifier import CodeExtractor, VerificationResult, Verifier
+    from k_cli.git.verifier import CodeExtractor, VerificationResult, Verifier
 except (ModuleNotFoundError, ImportError):
     try:
         from verifier import CodeExtractor, VerificationResult, Verifier
@@ -52,7 +52,7 @@ except (ModuleNotFoundError, ImportError):
         Verifier = None  # type: ignore
 
 try:
-    from k_cli.patcher import BatchPatchResult, FilePatch, PatchResult, Patcher
+    from k_cli.git.patcher import BatchPatchResult, FilePatch, PatchResult, Patcher
 except (ModuleNotFoundError, ImportError):
     try:
         from patcher import BatchPatchResult, FilePatch, PatchResult, Patcher
@@ -63,7 +63,7 @@ except (ModuleNotFoundError, ImportError):
         Patcher = None  # type: ignore
 
 try:
-    from k_cli.repo_map import RepoMap
+    from k_cli.git.repo_map import RepoMap
 except (ModuleNotFoundError, ImportError):
     try:
         from repo_map import RepoMap
@@ -71,10 +71,10 @@ except (ModuleNotFoundError, ImportError):
         RepoMap = None  # type: ignore
 
 try:
-    from k_cli.llm_driver import LLMDriver, ProviderType
+    from k_cli.core.llm_driver import LLMDriver, ProviderType
 except (ModuleNotFoundError, ImportError):
     try:
-        from llm_driver import LLMDriver, ProviderType
+        from k_cli.core.llm_driver import LLMDriver, ProviderType
     except (ModuleNotFoundError, ImportError):
         LLMDriver = None  # type: ignore
         ProviderType = None  # type: ignore

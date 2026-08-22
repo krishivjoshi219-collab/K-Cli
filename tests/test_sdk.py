@@ -10,10 +10,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from k_cli.sdk import KCLI
-from k_cli.models_hub import ModelHub, ModelProvider
-from k_cli.conflict_resolver import ConflictSummary
-from k_cli.security_healer import SecurityScanReport
+from k_cli.core.sdk import KCLI
+from k_cli.core.models_hub import ModelHub, ModelProvider
+from k_cli.git.conflict_resolver import ConflictSummary
+from k_cli.tools.security_healer import SecurityScanReport
 
 
 @pytest.fixture

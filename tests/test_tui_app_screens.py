@@ -7,7 +7,7 @@ import os
 from unittest.mock import MagicMock, patch
 import pytest
 
-from k_cli.tui_app import (
+from k_cli.tui.tui_app import (
     KCliCyberWorkstation,
     CredentialsVaultModal,
     ConflictStudioModal,

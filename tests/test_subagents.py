@@ -29,7 +29,7 @@ import pytest
 from typer.testing import CliRunner
 from rich.console import Console
 
-from k_cli.subagents import (
+from k_cli.agents.subagents import (
     SubagentRole,
     SubagentStatus,
     SubagentMessageType,
@@ -43,12 +43,12 @@ from k_cli.subagents import (
     SubagentVisualizer,
     execute_subagents,
 )
-from k_cli.orchestrator import Orchestrator
-from k_cli.llm_driver import LLMDriver
-from k_cli.verifier import Verifier, VerificationResult
-from k_cli.patcher import Patcher
-from k_cli.repo_map import RepoMap
-from k_cli.doc_retriever import DocRetriever
+from k_cli.agents.orchestrator import Orchestrator
+from k_cli.core.llm_driver import LLMDriver
+from k_cli.git.verifier import Verifier, VerificationResult
+from k_cli.git.patcher import Patcher
+from k_cli.git.repo_map import RepoMap
+from k_cli.tools.doc_retriever import DocRetriever
 from k_cli.cli import app
 
 

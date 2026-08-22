@@ -14,7 +14,7 @@ import time
 from typing import Any, Dict, List
 import pytest
 
-from doc_retriever import (
+from k_cli.tools.doc_retriever import (
     DocRetriever,
     DEFAULT_STDLIB_MODULES,
     DEFAULT_OFFICIAL_LIBRARIES,

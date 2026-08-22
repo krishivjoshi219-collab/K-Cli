@@ -27,7 +27,7 @@ if str(ROOT_DIR) not in sys.path:
 import pytest
 from typer.testing import CliRunner
 
-from persona import (
+from k_cli.agents.persona import (
     DomainPersona,
     PersonaProfile,
     PersonaRegistry,
@@ -40,11 +40,11 @@ from persona import (
     DATABASE_PERSONA,
     DEFAULT_PERSONA,
 )
-from orchestrator import Orchestrator, OrchestratorResult, Persona
-from llm_driver import LLMDriver
-from verifier import Verifier
-from session import SessionManager
-from cli import app, get_persona_color, execute_run
+from k_cli.agents.orchestrator import Orchestrator, OrchestratorResult, Persona
+from k_cli.core.llm_driver import LLMDriver
+from k_cli.git.verifier import Verifier
+from k_cli.core.session import SessionManager
+from k_cli.cli import app, get_persona_color, execute_run
 
 
 runner = CliRunner()

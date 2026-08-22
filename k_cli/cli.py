@@ -29,15 +29,15 @@ from rich.table import Table
 from rich.text import Text
 
 try:
-    from k_cli.llm_driver import LLMDriver
-    from k_cli.orchestrator import Orchestrator, Persona
-    from k_cli.verifier import Verifier
-    from k_cli.doc_retriever import DocRetriever
-    from k_cli.repo_map import RepoMap
-    from k_cli.session import SessionManager
-    from k_cli.model_manager import ModelManager, ModelPullResult, MODEL_CATALOG
-    from k_cli.persona import DomainPersona, PersonaProfile, PersonaRegistry
-    from k_cli.subagents import (
+    from k_cli.core.llm_driver import LLMDriver
+    from k_cli.agents.orchestrator import Orchestrator, Persona
+    from k_cli.git.verifier import Verifier
+    from k_cli.tools.doc_retriever import DocRetriever
+    from k_cli.git.repo_map import RepoMap
+    from k_cli.core.session import SessionManager
+    from k_cli.core.model_manager import ModelManager, ModelPullResult, MODEL_CATALOG
+    from k_cli.agents.persona import DomainPersona, PersonaProfile, PersonaRegistry
+    from k_cli.agents.subagents import (
         SubagentDispatcher,
         SubagentVisualizer,
         SubagentTask,
@@ -45,15 +45,15 @@ try:
         SubagentRunResult,
         execute_subagents,
     )
-    from k_cli.diff_viewer import DiffVisualizer
-    from k_cli.workflow import create_plan
-    from k_cli.git_guard import GitGuard
-    from k_cli.audit import run_audit
-    from k_cli.prompting import enhance_prompt, resolve_profile
-    from k_cli.security import scan_workspace
-    from k_cli.feature import inspect_feature
-    from k_cli.rules import load_project_rules
-    from k_cli.tui import (
+    from k_cli.tui.diff_viewer import DiffVisualizer
+    # REMOVED: from k_cli.workflow import create_plan
+    from k_cli.git.git_guard import GitGuard
+    from k_cli.tools.audit import run_audit
+    from k_cli.core.prompting import enhance_prompt, resolve_profile
+    from k_cli.tools.security import scan_workspace
+    pass  # feature.py removed in cleanup
+    from k_cli.tools.rules import load_project_rules
+    from k_cli.tui.tui import (
         StatusBar,
         LiveStreamRenderer,
         InteractiveShell,
@@ -61,7 +61,7 @@ try:
         MODEL_PRESETS,
         get_persona_style,
     )
-    from k_cli.mcp_client import (
+    from k_cli.tools.mcp_client import (
         MCPManager,
         MCPClient,
         MCPServerConfig,
@@ -70,14 +70,14 @@ try:
         mcp_remove_server,
         mcp_test_connection,
     )
-    from k_cli.conflict_resolver import (
+    from k_cli.git.conflict_resolver import (
         ConflictResolver,
         ConflictBlock,
         ConflictResolution,
         FileResolutionResult,
         ConflictSummary,
     )
-    from k_cli.github_client import (
+    from k_cli.github.github_client import (
         GitHubClient,
         MockGitHubClient,
         PRLifecycleManager,
@@ -86,13 +86,13 @@ try:
         PRFixResult,
         CIStatus,
     )
-    from k_cli.dedup_engine import (
+    from k_cli.github.dedup_engine import (
         DedupEngine,
         DedupMatch,
         CommitRecord,
         SymbolRecord,
     )
-    from k_cli.smart_git import (
+    from k_cli.git.smart_git import (
         SmartGitEngine,
         SmartCommitProposal,
         PRDescriptionProposal,
@@ -100,7 +100,7 @@ try:
         FileChangeAnalysis,
         CommitType,
     )
-    from k_cli.security_healer import (
+    from k_cli.tools.security_healer import (
         SecurityHealer,
         SecurityScanReport,
         VulnerabilityFinding,
@@ -108,13 +108,13 @@ try:
         VulnerabilitySeverity,
         VulnerabilityType,
     )
-    from k_cli.models_hub import (
+    from k_cli.core.models_hub import (
         ModelHub,
         ModelSpec,
         ModelProvider,
         ModelBenchmarkResult,
     )
-    from k_cli.github_engine import (
+    from k_cli.github.github_engine import (
         GitHubEngine,
         GitHubIssue,
         GitHubRelease,
@@ -122,8 +122,8 @@ try:
         IssueSolveResult,
     )
 except (ModuleNotFoundError, ImportError):
-    from llm_driver import LLMDriver
-    from orchestrator import Orchestrator, Persona
+    from k_cli.core.llm_driver import LLMDriver
+    from k_cli.agents.orchestrator import Orchestrator, Persona
     from verifier import Verifier
     from doc_retriever import DocRetriever
     from repo_map import RepoMap
@@ -149,12 +149,12 @@ except (ModuleNotFoundError, ImportError):
     from diff_viewer import DiffVisualizer
     from workflow import create_plan
     from git_guard import GitGuard
-    from audit import run_audit
+    from k_cli.tools.audit import run_audit
     from prompting import enhance_prompt, resolve_profile
     from security import scan_workspace
-    from feature import inspect_feature
-    from rules import load_project_rules
-    from tui import (
+    from k_cli.tools.audit import run_audit  # feature removed
+    from k_cli.tools.rules import load_project_rules
+    from k_cli.tui.tui import (
         StatusBar,
         LiveStreamRenderer,
         InteractiveShell,
@@ -207,7 +207,7 @@ except (ModuleNotFoundError, ImportError):
     except (ModuleNotFoundError, ImportError):
         DedupEngine = None  # type: ignore
     try:
-        from smart_git import (
+        from k_cli.git.smart_git import (
             SmartGitEngine,
             SmartCommitProposal,
             PRDescriptionProposal,
@@ -891,9 +891,9 @@ def ui_cmd(
 ):
     """Launch the polished Textual UI without changing the caller's workspace."""
     try:
-        from k_cli.tui_app import KCliApp
+        from k_cli.tui.tui_app import KCliApp
     except ModuleNotFoundError:
-        from tui_app import KCliApp
+        from k_cli.tui.tui_app import KCliCyberWorkstation as KCliApp
     KCliApp(workspace_dir=str(workspace), model_name=model, persona=persona, mock_mode=mock).run()
 
 

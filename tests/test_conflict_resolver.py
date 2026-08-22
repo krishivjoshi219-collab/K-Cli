@@ -13,14 +13,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from k_cli.conflict_resolver import (
+from k_cli.git.conflict_resolver import (
     ConflictBlock,
     ConflictResolution,
     ConflictResolver,
     ConflictSummary,
     FileResolutionResult,
 )
-from k_cli.verifier import Verifier
+from k_cli.git.verifier import Verifier
 
 
 class MockLLMDriver:

@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 import pytest
 
-from git_guard import GitGuard
+from k_cli.git.git_guard import GitGuard
 
 
 @pytest.fixture

@@ -30,22 +30,22 @@ import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from k_cli.llm_driver import LLMDriver, ProviderType
-from k_cli.models_hub import ModelBenchmarkResult, ModelHub, ModelSpec
-from k_cli.github_engine import GitHubEngine, IssueSolveResult
-from k_cli.github_client import GitHubClient, PRLifecycleManager
-from k_cli.conflict_resolver import ConflictResolver, ConflictSummary
-from k_cli.dedup_engine import DedupEngine, DedupMatch
-from k_cli.mcp_client import MCPManager
-from k_cli.incident_triage import IncidentHealResult, IncidentReport, IncidentTriageEngine
-from k_cli.diagram_generator import DiagramGenerator
-from k_cli.smart_git import SmartCommitProposal, SmartGitEngine
-from k_cli.security_healer import SecurityHealer, VulnerabilityHealResult, SecurityScanReport
-from k_cli.verifier import Verifier
-from k_cli.patcher import Patcher
-from k_cli.orchestrator import Orchestrator, OrchestratorResult
-from k_cli.session import SessionManager
-from k_cli.workflow import PlanResult, create_plan
+from k_cli.core.llm_driver import LLMDriver, ProviderType
+from k_cli.core.models_hub import ModelBenchmarkResult, ModelHub, ModelSpec
+from k_cli.github.github_engine import GitHubEngine, IssueSolveResult
+from k_cli.github.github_client import GitHubClient, PRLifecycleManager
+from k_cli.git.conflict_resolver import ConflictResolver, ConflictSummary
+from k_cli.github.dedup_engine import DedupEngine, DedupMatch
+from k_cli.tools.mcp_client import MCPManager
+from k_cli.tools.incident_triage import IncidentHealResult, IncidentReport, IncidentTriageEngine
+from k_cli.tools.diagram_generator import DiagramGenerator
+from k_cli.git.smart_git import SmartCommitProposal, SmartGitEngine
+from k_cli.tools.security_healer import SecurityHealer, VulnerabilityHealResult, SecurityScanReport
+from k_cli.git.verifier import Verifier
+from k_cli.git.patcher import Patcher
+from k_cli.agents.orchestrator import Orchestrator, OrchestratorResult
+from k_cli.core.session import SessionManager
+# REMOVED: from k_cli.workflow import PlanResult, create_plan
 
 logger = logging.getLogger("k_cli.sdk")
 

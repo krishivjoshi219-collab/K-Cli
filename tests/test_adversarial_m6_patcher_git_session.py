@@ -38,12 +38,12 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from patcher import Patcher
-from git_guard import GitGuard
-from session import SessionManager
-from llm_driver import LLMDriver
-from verifier import Verifier
-from orchestrator import Orchestrator, OrchestratorResult
+from k_cli.git.patcher import Patcher
+from k_cli.git.git_guard import GitGuard
+from k_cli.core.session import SessionManager
+from k_cli.core.llm_driver import LLMDriver
+from k_cli.git.verifier import Verifier
+from k_cli.agents.orchestrator import Orchestrator, OrchestratorResult
 
 
 # ==============================================================================

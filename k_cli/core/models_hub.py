@@ -611,7 +611,7 @@ class ModelHub:
         Executes benchmark test on model to calculate Time-to-First-Token,
         throughput tokens/second, memory RSS footprint, and output correctness.
         """
-        from k_cli.llm_driver import LLMDriver
+        from k_cli.core.llm_driver import LLMDriver
 
         start_time = time.time()
         first_token_time: Optional[float] = None

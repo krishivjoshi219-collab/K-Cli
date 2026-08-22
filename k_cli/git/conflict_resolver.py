@@ -24,17 +24,17 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 logger = logging.getLogger(__name__)
 
 try:
-    from k_cli.verifier import CodeExtractor, VerificationResult, Verifier
+    from k_cli.git.verifier import CodeExtractor, VerificationResult, Verifier
 except ModuleNotFoundError:
     try:
-        from verifier import CodeExtractor, VerificationResult, Verifier
+        from k_cli.git.verifier import CodeExtractor, VerificationResult, Verifier
     except ModuleNotFoundError:
         CodeExtractor = None  # type: ignore
         VerificationResult = None  # type: ignore
         Verifier = None  # type: ignore
 
 try:
-    from k_cli.git_guard import GitGuard
+    from k_cli.git.git_guard import GitGuard
 except ModuleNotFoundError:
     try:
         from git_guard import GitGuard

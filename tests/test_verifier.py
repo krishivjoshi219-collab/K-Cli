@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest
-from verifier import (
+from k_cli.git.verifier import (
     CodeExtractor,
     VerificationResult,
     Verifier,

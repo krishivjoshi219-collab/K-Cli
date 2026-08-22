@@ -19,7 +19,7 @@ if str(_root_dir) not in sys.path:
 import pytest
 
 try:
-    from k_cli.llm_driver import LLMDriver, ProviderType, _CallbackException
+    from k_cli.core.llm_driver import LLMDriver, ProviderType, _CallbackException
 except ModuleNotFoundError:
     from llm_driver import LLMDriver, ProviderType, _CallbackException
 
@@ -149,7 +149,7 @@ def test_openai_compatible_provider_uses_custom_endpoint():
 
 
 def test_custom_adapter_registration():
-    from k_cli.llm_driver import register_adapter
+    from k_cli.core.llm_driver import register_adapter
 
     def fake_adapter(prompt, system_prompt="", temperature=0.2, stream_callback=None):
         if stream_callback:
