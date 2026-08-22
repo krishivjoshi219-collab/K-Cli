@@ -1,22 +1,10 @@
-## Summary
+## What did you build or fix? 🛠️
+<!-- Give us a quick 1-2 sentence breakdown of what this PR does! -->
 
-<!-- What user problem does this solve? -->
+## Why is this cool / needed? 💡
+<!-- What bug did it crush or what superpower does it add? -->
 
-## Changes
-
--
-
-## Safety and compatibility
-
-- [ ] Generated code remains untrusted until verification succeeds.
-- [ ] File edits remain workspace-confined and transactional.
-- [ ] No credentials, weights, datasets, or generated artifacts are included.
-
-## Validation
-
-```text
-python -m pytest -q
-python -m compileall -q .
-```
-
-<!-- Add focused commands and screenshots/recordings when relevant. -->
+## Quick Checklist before merging:
+- [ ] Ran `pytest` locally and tests pass (or let us know if you need help fixing tests!)
+- [ ] Kept API keys and personal files out of the commits
+- [ ] Had fun building it! 🚀
