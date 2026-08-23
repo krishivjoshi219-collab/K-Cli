@@ -27,8 +27,8 @@ from typer.testing import CliRunner
 
 # Ensure root paths are available in sys.path
 _this_file = Path(__file__).resolve()
-_k_cli_dir = Path("/home/k/k_cli")
-_root_dir = Path("/home/k")
+_k_cli_dir = Path(__file__).parent.parent.resolve()
+_root_dir = _k_cli_dir.parent
 
 for p in [_this_file.parent.parent, _k_cli_dir, _root_dir]:
     if str(p) not in sys.path:
