@@ -113,6 +113,17 @@ CURATED_TRENDING_REPOS: List[TrendingRepo] = [
         url="https://github.com/deepseek-ai/DeepSeek-V3",
         topics=["ai", "deepseek", "moe", "reasoning"],
     ),
+    TrendingRepo(
+        owner="openclaw",
+        name="openclaw",
+        stars=387000,
+        forks=4000,
+        language="TypeScript",
+        description="Your own personal AI assistant. Any OS. Any Platform. The lobster way. 🦞",
+        stars_today=3872,
+        url="https://github.com/openclaw/openclaw",
+        topics=["ai-agent", "typescript", "assistant"],
+    ),
 ]
 
 
