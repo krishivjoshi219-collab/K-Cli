@@ -269,7 +269,7 @@ class TestGitGuardInteractiveConfirmation:
 
     def test_prompt_confirmation_apply(self, initialized_git_dir: Path):
         guard = GitGuard(repo_dir=str(initialized_git_dir))
-        from git_guard import PatchConfirmationAction, confirm_patch_action
+        from k_cli.git.git_guard import PatchConfirmationAction, confirm_patch_action
 
         # Test 'apply'
         action = guard.prompt_confirmation(input_fn=lambda prompt: "apply")
@@ -285,7 +285,7 @@ class TestGitGuardInteractiveConfirmation:
 
     def test_prompt_confirmation_reject(self, initialized_git_dir: Path):
         guard = GitGuard(repo_dir=str(initialized_git_dir))
-        from git_guard import PatchConfirmationAction
+        from k_cli.git.git_guard import PatchConfirmationAction
 
         action_r = guard.prompt_confirmation(input_fn=lambda prompt: "r")
         assert action_r == PatchConfirmationAction.REJECT
@@ -295,7 +295,7 @@ class TestGitGuardInteractiveConfirmation:
 
     def test_prompt_confirmation_auto_fix(self, initialized_git_dir: Path):
         guard = GitGuard(repo_dir=str(initialized_git_dir))
-        from git_guard import PatchConfirmationAction
+        from k_cli.git.git_guard import PatchConfirmationAction
 
         action_f = guard.prompt_confirmation(input_fn=lambda prompt: "f")
         assert action_f == PatchConfirmationAction.AUTO_FIX
@@ -305,7 +305,7 @@ class TestGitGuardInteractiveConfirmation:
 
     def test_prompt_confirmation_diff_then_apply(self, initialized_git_dir: Path):
         guard = GitGuard(repo_dir=str(initialized_git_dir))
-        from git_guard import PatchConfirmationAction
+        from k_cli.git.git_guard import PatchConfirmationAction
 
         inputs = iter(["diff", "apply"])
         displayed_outputs = []
@@ -320,7 +320,7 @@ class TestGitGuardInteractiveConfirmation:
 
     def test_prompt_confirmation_eof_defaults_to_reject(self, initialized_git_dir: Path):
         guard = GitGuard(repo_dir=str(initialized_git_dir))
-        from git_guard import PatchConfirmationAction
+        from k_cli.git.git_guard import PatchConfirmationAction
 
         def raise_eof(_prompt):
             raise EOFError()

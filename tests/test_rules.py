@@ -1,8 +1,6 @@
 from pathlib import Path
-
 import pytest
-
-# REMOVED: from rules import MAX_RULE_BYTES, load_project_rules
+from k_cli.tools.rules import MAX_RULE_BYTES, load_project_rules
 
 
 def test_load_project_rules_is_bounded_and_labeled(tmp_path: Path):

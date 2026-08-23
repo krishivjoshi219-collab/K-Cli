@@ -175,7 +175,7 @@ def test_verification_result_to_dict():
 
 
 def test_detect_test_framework_pytest(tmp_path: Path):
-    from verifier import detect_test_framework, TestFramework
+    from k_cli.git.verifier import detect_test_framework, TestFramework
     # pytest.ini
     p1 = tmp_path / "py_proj1"
     p1.mkdir()
@@ -198,7 +198,7 @@ def test_detect_test_framework_pytest(tmp_path: Path):
 
 
 def test_detect_test_framework_cargo(tmp_path: Path):
-    from verifier import detect_test_framework, TestFramework
+    from k_cli.git.verifier import detect_test_framework, TestFramework
     p = tmp_path / "rust_proj"
     p.mkdir()
     (p / "Cargo.toml").write_text('[package]\nname = "test"\n', encoding="utf-8")
@@ -206,7 +206,7 @@ def test_detect_test_framework_cargo(tmp_path: Path):
 
 
 def test_detect_test_framework_npm(tmp_path: Path):
-    from verifier import detect_test_framework, TestFramework
+    from k_cli.git.verifier import detect_test_framework, TestFramework
     p = tmp_path / "node_proj"
     p.mkdir()
     (p / "package.json").write_text('{"name": "test", "scripts": {"test": "jest"}}\n', encoding="utf-8")
@@ -214,7 +214,7 @@ def test_detect_test_framework_npm(tmp_path: Path):
 
 
 def test_detect_test_framework_go(tmp_path: Path):
-    from verifier import detect_test_framework, TestFramework
+    from k_cli.git.verifier import detect_test_framework, TestFramework
     p = tmp_path / "go_proj"
     p.mkdir()
     (p / "go.mod").write_text("module example.com/test\n", encoding="utf-8")
@@ -222,7 +222,7 @@ def test_detect_test_framework_go(tmp_path: Path):
 
 
 def test_detect_test_framework_make(tmp_path: Path):
-    from verifier import detect_test_framework, TestFramework
+    from k_cli.git.verifier import detect_test_framework, TestFramework
     p = tmp_path / "make_proj"
     p.mkdir()
     (p / "Makefile").write_text("test:\n\techo ok\n", encoding="utf-8")
@@ -230,14 +230,14 @@ def test_detect_test_framework_make(tmp_path: Path):
 
 
 def test_detect_test_framework_none(tmp_path: Path):
-    from verifier import detect_test_framework
+    from k_cli.git.verifier import detect_test_framework
     p = tmp_path / "empty_proj"
     p.mkdir()
     assert detect_test_framework(p) is None
 
 
 def test_run_project_tests_pytest_pass(tmp_path: Path):
-    from verifier import run_project_tests
+    from k_cli.git.verifier import run_project_tests
     proj = tmp_path / "pytest_pass"
     proj.mkdir()
     (proj / "conftest.py").write_text("", encoding="utf-8")
@@ -249,7 +249,7 @@ def test_run_project_tests_pytest_pass(tmp_path: Path):
 
 
 def test_run_project_tests_pytest_fail(tmp_path: Path):
-    from verifier import run_project_tests
+    from k_cli.git.verifier import run_project_tests
     proj = tmp_path / "pytest_fail"
     proj.mkdir()
     (proj / "conftest.py").write_text("", encoding="utf-8")
@@ -263,8 +263,8 @@ def test_run_project_tests_pytest_fail(tmp_path: Path):
 
 def test_verify_post_patch_auto_rollback_on_ast_error(tmp_path: Path):
     import subprocess
-    from git_guard import GitGuard
-    from verifier import verify_post_patch
+    from k_cli.git.git_guard import GitGuard
+    from k_cli.git.verifier import verify_post_patch
 
     repo = tmp_path / "ast_rollback_repo"
     repo.mkdir()
@@ -293,8 +293,8 @@ def test_verify_post_patch_auto_rollback_on_ast_error(tmp_path: Path):
 
 def test_verify_post_patch_auto_rollback_on_test_failure(tmp_path: Path):
     import subprocess
-    from git_guard import GitGuard
-    from verifier import verify_post_patch
+    from k_cli.git.git_guard import GitGuard
+    from k_cli.git.verifier import verify_post_patch
 
     repo = tmp_path / "test_rollback_repo"
     repo.mkdir()
@@ -325,7 +325,7 @@ def test_verify_post_patch_auto_rollback_on_test_failure(tmp_path: Path):
 
 
 def test_extract_framework_line_numbers():
-    from verifier import extract_error_line
+    from k_cli.git.verifier import extract_error_line
 
     # Rust / Cargo
     rust_trace = "error[E0425]: cannot find value `x` in this scope\n  --> src/main.rs:17:5\n   |"
