@@ -72,11 +72,13 @@ class RepoGardener:
         """Scans python codebase for defined functions never referenced across the project."""
         findings: List[GardenFinding] = []
         defined_functions: Dict[str, Tuple[str, int]] = {}  # name -> (file_path, lineno)
-        all_code_text = ""
+        ignored_dirs = {".venv", "k_cli_env", ".git", ".pytest_cache", "__pycache__", "build", "dist", "data"}
+        py_files = [
+            p for p in self.repo_path.rglob("*.py")
+            if not any(ig in p.parts for ig in ignored_dirs) and not p.name.startswith("test_")
+        ]
 
-        py_files = [p for p in self.repo_path.rglob("*.py") if "test" not in p.name and ".venv" not in str(p) and "__pycache__" not in str(p)]
-
-        for p in py_files:
+        for p in py_files[:100]:
             try:
                 content = p.read_text(encoding="utf-8", errors="ignore")
                 all_code_text += "\n" + content

@@ -921,7 +921,7 @@ class ConflictResolver:
             pass
 
         # Method 2: Recursive scan for conflict markers
-        ignored_dirs = {".git", ".venv", "venv", "node_modules", "build", "dist", "__pycache__", ".pytest_cache"}
+        ignored_dirs = {".git", ".venv", "k_cli_env", "venv", "node_modules", "build", "dist", "__pycache__", ".pytest_cache", "data"}
         for root, dirs, files in os.walk(str(target)):
             dirs[:] = [d for d in dirs if d not in ignored_dirs and not d.startswith(".")]
             for fname in files:

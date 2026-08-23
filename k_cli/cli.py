@@ -23,6 +23,7 @@ from typing import List, Optional
 import typer
 from rich.console import Console
 from rich.live import Live
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
@@ -1532,12 +1533,19 @@ def pr_review_cmd(
         raise typer.Exit(code=1)
 
     driver = LLMDriver(model_name=model or "qwen2.5-coder:1.5b", mock_mode=is_mock)
-    review = mgr.review_pr(
-        pr_number=pr_num,
-        llm_driver=driver,
-        model=model,
-        post_comment=post_comment,
-    )
+    try:
+        review = mgr.review_pr(
+            pr_number=pr_num,
+            llm_driver=driver,
+            model=model,
+            post_comment=post_comment,
+        )
+    except Exception as ex:
+        if json_output:
+            typer.echo(json.dumps({"error": f"Failed to review PR #{pr_num}: {ex}"}))
+        else:
+            console.print(f"[bold red]✘ Failed to review PR #{pr_num}:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
     if json_output:
         typer.echo(json.dumps(review.to_dict(), indent=2))
@@ -1579,11 +1587,18 @@ def pr_fix_cmd(
         raise typer.Exit(code=1)
 
     driver = LLMDriver(model_name=model or "qwen2.5-coder:1.5b", mock_mode=is_mock)
-    res = mgr.fix_pr(
-        pr_number=pr_num,
-        llm_driver=driver,
-        auto_push=auto_push,
-    )
+    try:
+        res = mgr.fix_pr(
+            pr_number=pr_num,
+            llm_driver=driver,
+            auto_push=auto_push,
+        )
+    except Exception as ex:
+        if json_output:
+            typer.echo(json.dumps({"error": f"Failed to fix PR #{pr_num}: {ex}"}))
+        else:
+            console.print(f"[bold red]✘ Failed to fix PR #{pr_num}:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
     if json_output:
         typer.echo(json.dumps(res.to_dict(), indent=2))
@@ -1623,11 +1638,18 @@ def pr_merge_cmd(
             console.print("[bold red]Error:[/bold red] PRLifecycleManager module is not available.")
         raise typer.Exit(code=1)
 
-    ok = mgr.auto_merge_pr(
-        pr_number=pr_num,
-        require_ci_pass=require_ci,
-        merge_method=method,
-    )
+    try:
+        ok = mgr.auto_merge_pr(
+            pr_number=pr_num,
+            require_ci_pass=require_ci,
+            merge_method=method,
+        )
+    except Exception as ex:
+        if json_output:
+            typer.echo(json.dumps({"error": f"Failed to merge PR #{pr_num}: {ex}"}))
+        else:
+            console.print(f"[bold red]✘ Failed to merge PR #{pr_num}:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
     if json_output:
         typer.echo(json.dumps({"pr_number": pr_num, "merged": ok, "method": method}, indent=2))
@@ -2454,6 +2476,9 @@ def keys_set_cmd(
     key_name: str = typer.Argument(..., help="Environment variable name (e.g. GEMINI_API_KEY, OPENAI_API_KEY, GITHUB_TOKEN)."),
     key_val: str = typer.Argument(..., help="Secret API key value."),
 ):
+    if not key_name.strip() or not key_val.strip():
+        console.print("[bold red]✘ Key name and value cannot be empty.[/bold red]")
+        raise typer.Exit(code=1)
     from k_cli.core.credentials import CredentialsManager
     CredentialsManager.set_key(key_name, key_val)
     console.print(f"[bold green]✔ Successfully saved and activated {key_name.upper()}![/bold green]")
@@ -2536,10 +2561,14 @@ def bisect_cmd(
     bad: str = typer.Option("HEAD", "--bad", help="Known bad commit SHA."),
 ):
     from k_cli.git.ai_bisect import AIBisectEngine
-    engine = AIBisectEngine()
-    console.print(f"[bold magenta]🎯 Starting AI Git Bisect between {good} and {bad}...[/bold magenta]")
-    res = engine.run_bisect(test_command=test_cmd, good_commit=good, bad_commit=bad)
-    console.print(Markdown(res.render_markdown()))
+    try:
+        engine = AIBisectEngine()
+        console.print(f"[bold magenta]🎯 Starting AI Git Bisect between {good} and {bad}...[/bold magenta]")
+        res = engine.run_bisect(test_command=test_cmd, good_commit=good, bad_commit=bad)
+        console.print(Markdown(res.render_markdown()))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Git Bisect failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="route", help="Feature 3: Cost & Latency Smart Model Router.")
@@ -2547,17 +2576,21 @@ def route_cmd(
     task: str = typer.Argument(..., help="Task prompt to analyze and route."),
 ):
     from k_cli.core.smart_router import SmartModelRouter
-    router = SmartModelRouter()
-    dec = router.route(task_prompt=task)
-    console.print(Panel(
-        f"[bold cyan]Selected Model:[/bold cyan] {dec.selected_model} ({dec.selected_provider})\n"
-        f"[bold yellow]Task Tier:[/bold yellow] {dec.tier.value.upper()}\n"
-        f"[bold green]Estimated Cost:[/bold green] ${dec.estimated_cost_usd:.4f} USD\n"
-        f"[bold blue]Savings vs GPT-4:[/bold blue] ${dec.savings_usd:.4f} USD ({(dec.savings_usd/dec.baseline_gpt4_cost_usd):.1%})\n"
-        f"[dim]Rationale: {dec.reasoning}[/dim]",
-        title="⚡ Smart Model Router Decision",
-        border_style="cyan",
-    ))
+    try:
+        router = SmartModelRouter()
+        dec = router.route(task_prompt=task or "default task")
+        console.print(Panel(
+            f"[bold cyan]Selected Model:[/bold cyan] {dec.selected_model} ({dec.selected_provider})\n"
+            f"[bold yellow]Task Tier:[/bold yellow] {dec.tier.value.upper()}\n"
+            f"[bold green]Estimated Cost:[/bold green] ${dec.estimated_cost_usd:.4f} USD\n"
+            f"[bold blue]Savings vs GPT-4:[/bold blue] ${dec.savings_usd:.4f} USD ({(dec.savings_usd/dec.baseline_gpt4_cost_usd):.1%})\n"
+            f"[dim]Rationale: {dec.reasoning}[/dim]",
+            title="⚡ Smart Model Router Decision",
+            border_style="cyan",
+        ))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Smart Router failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="garden", help="Feature 4: Nightly Autonomous Repo Maintenance & Health Sweep.")
@@ -2565,13 +2598,17 @@ def garden_cmd(
     as_json: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
 ):
     from k_cli.tools.repo_gardener import RepoGardener
-    gardener = RepoGardener()
-    rep = gardener.run_garden_sweep()
-    if as_json:
-        import json
-        console.print(json.dumps({"health_score": rep.health_score, "findings": len(rep.findings), "dead_code": rep.dead_code_count}))
-    else:
-        console.print(Markdown(rep.render_markdown()))
+    try:
+        gardener = RepoGardener()
+        rep = gardener.run_garden_sweep()
+        if as_json:
+            import json
+            console.print(json.dumps({"health_score": rep.health_score, "findings": len(rep.findings), "dead_code": rep.dead_code_count}))
+        else:
+            console.print(Markdown(rep.render_markdown()))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Repo Gardener failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="explain", help="Feature 5: Codebase Natural Language Search & Semantic Q&A.")
@@ -2579,9 +2616,16 @@ def explain_cmd(
     query: str = typer.Argument(..., help="Question to ask about the codebase architecture."),
 ):
     from k_cli.tools.codebase_qa import CodebaseQAEngine
-    qa = CodebaseQAEngine()
-    res = qa.ask(query=query)
-    console.print(Markdown(res.render_markdown()))
+    if not query.strip():
+        console.print("[bold yellow]Please provide a question to search the codebase.[/bold yellow]")
+        return
+    try:
+        qa = CodebaseQAEngine()
+        res = qa.ask(query=query)
+        console.print(Markdown(res.render_markdown()))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Codebase Q&A failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="ghost", help="Feature 6: Ghost Terminal Autopilot & Error Healer.")
@@ -2589,10 +2633,14 @@ def ghost_cmd(
     command: str = typer.Argument(..., help="Dev server or test command to wrap (e.g. 'pytest')."),
 ):
     from k_cli.tools.ghost_daemon import GhostTerminalDaemon
-    daemon = GhostTerminalDaemon()
-    console.print(f"[bold cyan]👻 K-CLI Ghost Terminal Autopilot attached to: '{command}'[/bold cyan]\n")
-    code = daemon.run_wrapped_command(command_str=command, on_heal_prompt=lambda p: True)
-    raise typer.Exit(code=code)
+    try:
+        daemon = GhostTerminalDaemon()
+        console.print(f"[bold cyan]👻 K-CLI Ghost Terminal Autopilot attached to: '{command}'[/bold cyan]\n")
+        code = daemon.run_wrapped_command(command_str=command, on_heal_prompt=lambda p: True)
+        raise typer.Exit(code=code)
+    except Exception as ex:
+        console.print(f"[bold red]✘ Ghost Daemon encountered an error:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="swarm", help="Feature 7: Adversarial Red Team / Blue Team Consensus Loop.")
@@ -2601,10 +2649,14 @@ def swarm_cmd(
     rounds: int = typer.Option(3, "--rounds", "-r", help="Maximum adversarial attack rounds."),
 ):
     from k_cli.agents.adversarial_swarm import AdversarialConsensusSwarm
-    swarm = AdversarialConsensusSwarm(max_rounds=rounds)
-    console.print(f"[bold magenta]🐝 Running Adversarial Consensus Swarm for: '{task}'...[/bold magenta]")
-    res = swarm.run_consensus(task_prompt=task)
-    console.print(Markdown(res.render_markdown()))
+    try:
+        swarm = AdversarialConsensusSwarm(max_rounds=rounds)
+        console.print(f"[bold magenta]🐝 Running Adversarial Consensus Swarm for: '{task}'...[/bold magenta]")
+        res = swarm.run_consensus(task_prompt=task or "consensus task")
+        console.print(Markdown(res.render_markdown()))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Adversarial Swarm failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="synapse", help="Feature 8: AST Neural Code Graph & Context Compressor.")
@@ -2612,17 +2664,25 @@ def synapse_cmd(
     query: str = typer.Argument(..., help="Task or keyword to extract minimal AST subgraph for."),
 ):
     from k_cli.tools.synapse_graph import SynapseCodeGraph
-    graph = SynapseCodeGraph()
-    res = graph.extract_subgraph_slice(query=query)
-    console.print(Markdown(res.render_context()))
+    try:
+        graph = SynapseCodeGraph()
+        res = graph.extract_subgraph_slice(query=query or "core")
+        console.print(Markdown(res.render_context()))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Synapse Graph extraction failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="airgap", help="Feature 9: Sovereign Air-Gapped Offline Engine.")
 def airgap_cmd():
     from k_cli.core.airgap import AirgapManager
-    mgr = AirgapManager()
-    rep = mgr.audit_environment()
-    console.print(Markdown(rep.render_markdown()))
+    try:
+        mgr = AirgapManager()
+        rep = mgr.audit_environment()
+        console.print(Markdown(rep.render_markdown()))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Airgap audit failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 @app.command(name="scaffold", help="Feature 10: Natural Language Full-Stack Scaffolder.")
@@ -2632,10 +2692,17 @@ def scaffold_cmd(
     write: bool = typer.Option(False, "--write", "-w", help="Write scaffolded files to disk."),
 ):
     from k_cli.agents.scaffold_engine import FullStackScaffolder
-    scaffolder = FullStackScaffolder()
-    console.print(f"[bold cyan]🏗️ Scaffolding full-stack application for: '{spec}'...[/bold cyan]")
-    res = scaffolder.scaffold(spec_prompt=spec, target_dir=target, write_to_disk=write)
-    console.print(Markdown(res.render_markdown()))
+    if not spec.strip():
+        console.print("[bold yellow]Please provide an application specification to scaffold.[/bold yellow]")
+        return
+    try:
+        scaffolder = FullStackScaffolder()
+        console.print(f"[bold cyan]🏗️ Scaffolding full-stack application for: '{spec}'...[/bold cyan]")
+        res = scaffolder.scaffold(spec_prompt=spec, target_dir=target, write_to_disk=write)
+        console.print(Markdown(res.render_markdown()))
+    except Exception as ex:
+        console.print(f"[bold red]✘ Scaffolding failed:[/bold red] {ex}")
+        raise typer.Exit(code=1)
 
 
 def interactive_mode(model: str = "qwen2.5-coder:1.5b", mock: bool = False):

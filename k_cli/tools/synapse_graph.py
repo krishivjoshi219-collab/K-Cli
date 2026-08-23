@@ -70,9 +70,13 @@ class SynapseCodeGraph:
         self.nodes.clear()
         self.call_edges.clear()
 
-        py_files = [p for p in self.repo_path.rglob("*.py") if ".venv" not in str(p) and "__pycache__" not in str(p)]
+        ignored_dirs = {".venv", "k_cli_env", ".git", ".pytest_cache", "__pycache__", "build", "dist", "data"}
+        py_files = [
+            p for p in self.repo_path.rglob("*.py")
+            if not any(ig in p.parts for ig in ignored_dirs) and not p.name.startswith("test_")
+        ]
 
-        for p in py_files:
+        for p in py_files[:150]:
             rel = str(p.relative_to(self.repo_path))
             try:
                 content = p.read_text(encoding="utf-8", errors="ignore")

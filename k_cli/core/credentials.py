@@ -115,6 +115,8 @@ class CredentialsManager:
         """
         key_name = key_name.strip().upper()
         key_val = key_val.strip()
+        if not key_name:
+            return
         os.environ[key_name] = key_val
 
         cls.CRED_DIR.mkdir(parents=True, exist_ok=True)

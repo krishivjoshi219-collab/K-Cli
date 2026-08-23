@@ -65,9 +65,10 @@ class CodebaseQAEngine:
         matched_files: List[str] = []
         matched_symbols: List[str] = []
 
+        ignored_dirs = {".venv", "k_cli_env", ".git", ".pytest_cache", "__pycache__", "build", "dist", "data"}
         query_tokens = query.lower().split()
         for p in self.repo_path.rglob("*.py"):
-            if ".venv" in str(p) or "__pycache__" in str(p):
+            if any(ig in p.parts for ig in ignored_dirs):
                 continue
             try:
                 rel = str(p.relative_to(self.repo_path))

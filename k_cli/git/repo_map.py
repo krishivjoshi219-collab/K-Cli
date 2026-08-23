@@ -48,8 +48,11 @@ class RepoMap:
         ".agents",
         ".pytest_cache",
         ".venv",
+        "k_cli_env",
         "venv",
         "env",
+        "data",
+        ".pytest_cache",
         "__pycache__",
         "build",
         "dist",
@@ -66,6 +69,7 @@ class RepoMap:
         ".next",
         ".turbo",
         ".cache",
+        ".agents",
     }
 
     SUPPORTED_EXTENSIONS: Set[str] = {
