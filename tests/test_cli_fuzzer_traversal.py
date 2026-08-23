@@ -26,7 +26,8 @@ runner = CliRunner()
 def run_cli_subprocess(args: List[str], timeout: float = 6.0) -> Tuple[int, str, str]:
     """Runs k-cli as a real subprocess with timeout safety."""
     env = os.environ.copy()
-    env["PYTHONPATH"] = f"/home/k/k_cli:{env.get('PYTHONPATH', '')}"
+    repo_root = Path(__file__).parent.parent.resolve()
+    env["PYTHONPATH"] = f"{repo_root}:{env.get('PYTHONPATH', '')}"
     env["KCLI_MOCK"] = "1"
     python_bin = sys.executable
 
@@ -38,7 +39,7 @@ def run_cli_subprocess(args: List[str], timeout: float = 6.0) -> Tuple[int, str,
             text=True,
             timeout=timeout,
             env=env,
-            cwd="/home/k/k_cli",
+            cwd=str(repo_root),
         )
         return proc.returncode, proc.stdout, proc.stderr
     except subprocess.TimeoutExpired:

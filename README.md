@@ -341,6 +341,8 @@ k-cli route    "task"             →  Smart cost/latency model router
 k-cli garden                      →  Repo health audit & dead code sweep
 k-cli explain  "question"         →  Natural language codebase Q&A
 k-cli scaffold "description"      →  Full-stack project generator
+k-cli hub                         →  Local GitHub workstation analytics & commit streams
+k-cli trending                    →  Discover trending GitHub repos, AI agents & tools
 
 k-cli pr list                     →  List open pull requests
 k-cli pr review <num>             →  AI code review on a PR
@@ -425,6 +427,8 @@ k_cli/
 ├── github/
 │   ├── github_client.py     ← Zero-dependency GitHub REST v3 client
 │   ├── github_engine.py     ← Issue solver, release publisher, CI inspector
+│   ├── local_hub.py        ← Local GitHub workstation analytics & commit streams
+│   ├── trending.py         ← GitHub trending discovery engine
 │   ├── pr_watcher.py        ← 24/7 background PR review and auto-merge bot
 │   └── dedup_engine.py      ← BM25 + AST semantic duplicate issue detector
 │

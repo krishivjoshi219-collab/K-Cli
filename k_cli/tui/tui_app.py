@@ -73,6 +73,8 @@ try:
     from k_cli.git.verifier import Verifier
     from k_cli.git.patcher import Patcher
     from k_cli.core.session import SessionManager
+    from k_cli.github.local_hub import LocalGitHubHub, LocalHubSummary
+    from k_cli.github.trending import TrendingEngine, TrendingRepo
 except (ModuleNotFoundError, ImportError):
     pass
 
@@ -691,6 +693,144 @@ class SecurityScannerModal(ModalScreen[None]):
 
 
 # =============================================================================
+# 5b. Local Hub & Trending Discovery Modals (Ctrl+H & Ctrl+R)
+# =============================================================================
+
+class LocalHubModal(ModalScreen[None]):
+    """Local GitHub Workstation Dashboard Modal."""
+
+    DEFAULT_CSS = """
+    LocalHubModal {
+        align: center middle;
+        background: rgba(10, 15, 30, 0.9);
+    }
+
+    #hub-box {
+        width: 85%;
+        height: 85%;
+        background: #0d1117;
+        border: heavy #00f0ff;
+        padding: 1;
+    }
+
+    #hub-log {
+        height: 1fr;
+        background: #161b22;
+        padding: 1;
+    }
+
+    #hub-act {
+        height: 3;
+        align: center middle;
+    }
+
+    #hub-act Button {
+        margin: 0 1;
+    }
+    """
+
+    BINDINGS = [Binding("escape", "dismiss", "Close")]
+
+    def compose(self) -> ComposeResult:
+        with Container(id="hub-box"):
+            yield Label("🐙 Local GitHub Workstation Dashboard")
+            yield RichLog(id="hub-log", highlight=True)
+            with Horizontal(id="hub-act"):
+                yield Button("🔄 Refresh Feed", variant="primary", id="btn-hub-refresh")
+                yield Button("✖ Close", variant="default", id="btn-hub-close")
+
+    def on_mount(self) -> None:
+        self.on_refresh()
+
+    @on(Button.Pressed, "#btn-hub-refresh")
+    def on_refresh(self) -> None:
+        hub = LocalGitHubHub()
+        sum = hub.get_summary()
+        commits = hub.get_recent_commits(limit=8)
+        log = self.query_one("#hub-log", RichLog)
+        log.clear()
+        log.write(f"Repository: {sum.repo_name} | Active Branch: {sum.branch_name}\nHealth Score: {sum.health_score}/100 | Total Commits: {sum.total_commits}\n\nRecent Commit History:")
+        for c in commits:
+            log.write(f"  • {c.short_sha} - {c.subject} ({c.author}) [{c.date}]")
+
+    @on(Button.Pressed, "#btn-hub-close")
+    def on_close(self) -> None:
+        self.dismiss()
+
+
+class TrendingModal(ModalScreen[None]):
+    """Trending on GitHub Discovery Modal."""
+
+    DEFAULT_CSS = """
+    TrendingModal {
+        align: center middle;
+        background: rgba(10, 15, 30, 0.9);
+    }
+
+    #trend-box {
+        width: 90%;
+        height: 85%;
+        background: #0d1117;
+        border: heavy #ff007f;
+        padding: 1;
+    }
+
+    #trend-opt {
+        height: 1fr;
+    }
+
+    #trend-act {
+        height: 3;
+        align: center middle;
+    }
+
+    #trend-act Button {
+        margin: 0 1;
+    }
+    """
+
+    BINDINGS = [Binding("escape", "dismiss", "Close")]
+
+    def compose(self) -> ComposeResult:
+        with Container(id="trend-box"):
+            yield Label("🔥 Trending on GitHub — Discover Superpowers")
+            with Container(id="trend-opt"):
+                yield OptionList(id="opt-trend-list")
+            with Horizontal(id="trend-act"):
+                yield Button("🐍 Python", variant="primary", id="btn-tr-py")
+                yield Button("🦀 Rust", variant="success", id="btn-tr-rs")
+                yield Button("⚡ AI Agents", variant="warning", id="btn-tr-ai")
+                yield Button("✖ Close", variant="default", id="btn-tr-close")
+
+    def on_mount(self) -> None:
+        self.load_trending(None)
+
+    def load_trending(self, lang: Optional[str] = None, q: Optional[str] = None) -> None:
+        engine = TrendingEngine()
+        repos = engine.get_trending(language=lang, query=q, limit=10)
+        opt = self.query_one("#opt-trend-list", OptionList)
+        opt.clear_options()
+        for r in repos:
+            opt.add_option(Option(f"★ {r.stars:,} (+{r.stars_today}) | {r.full_name} ({r.language}) — {r.description[:50]}", id=r.full_name))
+
+    @on(Button.Pressed, "#btn-tr-py")
+    def on_py(self) -> None:
+        self.load_trending(lang="python")
+
+    @on(Button.Pressed, "#btn-tr-rs")
+    def on_rs(self) -> None:
+        self.load_trending(lang="rust")
+
+    @on(Button.Pressed, "#btn-tr-ai")
+    def on_ai(self) -> None:
+        self.load_trending(q="ai")
+
+    @on(Button.Pressed, "#btn-tr-close")
+    def on_close(self) -> None:
+        self.dismiss()
+
+
+# =============================================================================
 # 6. Master Workstation (Claude Code / Copilot / AGY Fusion)
 # =============================================================================
 
@@ -804,6 +944,8 @@ class KCliCyberWorkstation(App):
         Binding("ctrl+g", "open_github", "GitHub", show=True),
         Binding("ctrl+m", "open_models", "Models", show=True),
         Binding("ctrl+s", "open_security", "Security", show=True),
+        Binding("ctrl+h", "open_local_hub", "Local Hub", show=True),
+        Binding("ctrl+r", "open_trending", "Trending", show=True),
         Binding("ctrl+l", "clear_screen", "Clear", show=True),
         Binding("ctrl+q", "quit", "Quit", show=True),
     ]
@@ -835,6 +977,8 @@ class KCliCyberWorkstation(App):
                 yield Button("🌿 Repo Gardener", variant="success", id="btn-side-garden", classes="launcher-btn")
                 yield Button("💬 Codebase Q&A", variant="default", id="btn-side-explain", classes="launcher-btn")
                 yield Button("🏗️ Full-Stack Scaffold", variant="primary", id="btn-side-scaffold", classes="launcher-btn")
+                yield Button("🐙 Local GitHub Hub", variant="primary", id="btn-side-hub", classes="launcher-btn")
+                yield Button("🔥 Trending on GitHub", variant="success", id="btn-side-trending", classes="launcher-btn")
                 yield Button("⚔️ Merge Conflicts", variant="default", id="btn-side-conflicts", classes="launcher-btn")
                 yield Button("🐙 GitHub Center", variant="default", id="btn-side-github", classes="launcher-btn")
                 yield Button("🤖 Switch AI Model", variant="default", id="btn-side-models", classes="launcher-btn")
@@ -862,6 +1006,8 @@ class KCliCyberWorkstation(App):
                 # 1-Click Action Chips Bar
                 with Horizontal(id="chips-bar"):
                     yield Button("⚡ Plan Task", variant="default", id="chip-plan", classes="chip-btn")
+                    yield Button("🐙 Local Hub", variant="primary", id="chip-hub", classes="chip-btn")
+                    yield Button("🔥 Trending", variant="success", id="chip-trending", classes="chip-btn")
                     yield Button("⚔️ Conflicts", variant="default", id="chip-conflict", classes="chip-btn")
                     yield Button("🐙 GitHub", variant="default", id="chip-gh", classes="chip-btn")
                     yield Button("🔑 API Keys", variant="primary", id="chip-keys", classes="chip-btn")
@@ -907,6 +1053,12 @@ class KCliCyberWorkstation(App):
     def action_open_security(self) -> None:
         self.push_screen(SecurityScannerModal())
 
+    def action_open_local_hub(self) -> None:
+        self.push_screen(LocalHubModal())
+
+    def action_open_trending(self) -> None:
+        self.push_screen(TrendingModal())
+
     def action_clear_screen(self) -> None:
         scroll = self.query_one("#chat-scroll", VerticalScroll)
         scroll.remove_children()
@@ -937,6 +1089,16 @@ class KCliCyberWorkstation(App):
     @on(Button.Pressed, "#chip-security")
     def on_security_click(self) -> None:
         self.action_open_security()
+
+    @on(Button.Pressed, "#btn-side-hub")
+    @on(Button.Pressed, "#chip-hub")
+    def on_hub_click(self) -> None:
+        self.action_open_local_hub()
+
+    @on(Button.Pressed, "#btn-side-trending")
+    @on(Button.Pressed, "#chip-trending")
+    def on_trending_click(self) -> None:
+        self.action_open_trending()
 
     @on(Button.Pressed, "#btn-side-triage")
     def on_triage_click(self) -> None:

@@ -122,6 +122,8 @@ try:
         WorkflowRun,
         IssueSolveResult,
     )
+    from k_cli.github.local_hub import LocalGitHubHub, LocalHubSummary, LocalCommit
+    from k_cli.github.trending import TrendingEngine, TrendingRepo
 except (ModuleNotFoundError, ImportError):
     from k_cli.core.llm_driver import LLMDriver
     from k_cli.agents.orchestrator import Orchestrator, Persona
@@ -2430,6 +2432,79 @@ def gh_gist_create(
     content = p.read_text(encoding="utf-8", errors="replace")
     url = engine.create_gist(files={p.name: content}, description=description, public=public)
     console.print(f"[bold green]✔ Gist created successfully:[/bold green] [link={url}]{url}[/link]")
+
+
+# =============================================================================
+# Local GitHub Hub & Trending Commands (`k-cli hub` / `k-cli trending`)
+# =============================================================================
+
+@app.command(name="hub", help="Display local GitHub workstation summary, commits, and activity feed.")
+def hub_cmd(
+    repo: str = typer.Option(".", "--repo", "-r", help="Repository path."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Displays local repository workstation analytics and commit streams."""
+    hub = LocalGitHubHub(repo_path=repo)
+    summary = hub.get_summary()
+
+    if json_output:
+        sys.stdout.write(json.dumps(summary.to_dict(), indent=2) + "\n")
+        return
+
+    table = Table(title=f"🐙 Local GitHub Workstation ({summary.repo_name})", box=None)
+    table.add_column("Property", style="cyan")
+    table.add_column("Value", style="bold white")
+    table.add_row("Branch Name", f"[bold green]{summary.branch_name}[/bold green]")
+    table.add_row("Total Commits", str(summary.total_commits))
+    table.add_row("Uncommitted Changes", f"[yellow]{summary.uncommitted_changes}[/yellow]" if summary.uncommitted_changes else "[green]0 (clean)[/green]")
+    table.add_row("Contributors", str(summary.contributors_count))
+    table.add_row("Repository Health", f"[bold green]{summary.health_score:.1f} / 100[/bold green]")
+    console.print(table)
+    console.print()
+
+    commits = hub.get_recent_commits(limit=5)
+    if commits:
+        c_table = Table(title="Recent Git Commit History", box=None)
+        c_table.add_column("SHA", style="bold cyan")
+        c_table.add_column("Author", style="magenta")
+        c_table.add_column("Date", style="dim")
+        c_table.add_column("Subject", style="white")
+        for c in commits:
+            c_table.add_row(c.short_sha, c.author, c.date, c.subject[:50])
+        console.print(c_table)
+
+
+@app.command(name="trending", help="Discover trending GitHub repositories, AI agents, and developer tools.")
+def trending_cmd(
+    language: Optional[str] = typer.Option(None, "--language", "-l", help="Filter by programming language (python, rust, go, etc.)."),
+    query: Optional[str] = typer.Option(None, "--query", "-q", help="Filter by topic or query (ai-agent, tui, llm, etc.)."),
+    limit: int = typer.Option(10, "--limit", "-n", help="Max repositories to show."),
+    json_output: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+):
+    """Discovers trending GitHub repositories and AI agent frameworks."""
+    engine = TrendingEngine()
+    repos = engine.get_trending(language=language, query=query, limit=limit)
+
+    if json_output:
+        sys.stdout.write(json.dumps([r.to_dict() for r in repos], indent=2) + "\n")
+        return
+
+    table = Table(title="🔥 Trending on GitHub (Developer Workstation)", box=None)
+    table.add_column("Repository", style="bold cyan")
+    table.add_column("Language", style="magenta")
+    table.add_column("Stars", style="yellow", justify="right")
+    table.add_column("Today", style="bold green", justify="right")
+    table.add_column("Description", style="white")
+
+    for r in repos:
+        table.add_row(
+            r.full_name,
+            r.language,
+            f"★ {r.stars:,}",
+            f"+{r.stars_today}",
+            r.description[:50] + ("..." if len(r.description) > 50 else ""),
+        )
+    console.print(table)
 
 
 # Mount sub-applications onto root CLI app
