@@ -47,12 +47,12 @@ try:
         execute_subagents,
     )
     from k_cli.tui.diff_viewer import DiffVisualizer
-    # REMOVED: from k_cli.workflow import create_plan
+    from k_cli.core.sdk import create_plan
     from k_cli.git.git_guard import GitGuard
     from k_cli.tools.audit import run_audit
     from k_cli.core.prompting import enhance_prompt, resolve_profile
     from k_cli.tools.security import scan_workspace
-    pass  # feature.py removed in cleanup
+    from k_cli.tools.feature import inspect_feature
     from k_cli.tools.rules import load_project_rules
     from k_cli.tui.tui import (
         StatusBar,
@@ -148,12 +148,15 @@ except (ModuleNotFoundError, ImportError):
         execute_subagents,
     )
     from diff_viewer import DiffVisualizer
-    from workflow import create_plan
+    try:
+        from k_cli.core.sdk import create_plan
+    except (ImportError, ModuleNotFoundError):
+        from workflow import create_plan
     from git_guard import GitGuard
     from k_cli.tools.audit import run_audit
     from prompting import enhance_prompt, resolve_profile
     from security import scan_workspace
-    from k_cli.tools.audit import run_audit  # feature removed
+    from k_cli.tools.feature import inspect_feature
     from k_cli.tools.rules import load_project_rules
     from k_cli.tui.tui import (
         StatusBar,

@@ -56,9 +56,17 @@ class PlanResult:
     dedup_warning: Optional[str] = None
     dedup_match: Optional[Dict[str, Any]] = None
 
+    workspace: Optional[Path] = None
+    relevant_files: List[str] = field(default_factory=list)
+    detected_tools: List[str] = field(default_factory=list)
+    repo_map: str = ""
+    project_guidance: Optional[str] = None
+
     def render_markdown(self) -> str:
         """Render the plan as a markdown string."""
-        lines = [f"## Plan: {self.goal}", ""]
+        lines = ["# protected plan", f"## Plan: {self.goal}", ""]
+        if self.project_guidance:
+            lines += ["### Project guidance", self.project_guidance, ""]
         for i, step in enumerate(self.steps, 1):
             lines.append(f"{i}. {step}")
         if self.dedup_warning:
@@ -68,12 +76,13 @@ class PlanResult:
 
 def create_plan(
     goal: str,
-    workspace_dir: str = ".",
+    workspace_dir: Union[str, Path] = ".",
     max_files: int = 10,
 ) -> PlanResult:
     """Generate a protected, read-only change plan with deduplication check."""
+    workspace_path = Path(workspace_dir).resolve()
     dedup = DedupEngine()
-    match = dedup.scan_for_duplicate(query=goal, repo_path=workspace_dir)
+    match = dedup.scan_for_duplicate(query=goal, repo_path=str(workspace_path))
     warning = None
     match_info = None
     if match and match.is_duplicate and match.confidence > 0.6:
@@ -86,7 +95,13 @@ def create_plan(
         "Verify changes with AST parser and project tests",
         "Commit with conventional message and open PR",
     ]
-    return PlanResult(goal=goal, steps=steps, dedup_warning=warning, dedup_match=match_info)
+    return PlanResult(
+        goal=goal,
+        steps=steps,
+        dedup_warning=warning,
+        dedup_match=match_info,
+        workspace=workspace_path,
+    )
 
 logger = logging.getLogger("k_cli.sdk")
 
