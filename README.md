@@ -9,390 +9,370 @@
 ╚═╝  ╚═╝      ╚═════╝╚══════╝╚═╝
 ```
 
-**The AI coding agent that lives in your terminal.**  
-**It watches your crashes. It fixes your PRs. It argues with itself until the code is perfect.**
+### The AI coding agent that fixes bugs **while you sleep**, reviews PRs **before you wake up**, and runs 5 models simultaneously to argue over your code until it's perfect.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python)](https://www.python.org/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-300%20passing-brightgreen?style=flat-square&logo=pytest)](tests/)
-[![CodeQL](https://img.shields.io/badge/CodeQL-verified-blueviolet?style=flat-square&logo=github)](/.github/workflows/codeql.yml)
-[![Providers](https://img.shields.io/badge/providers-Gemini%20%7C%20Claude%20%7C%20GPT--4%20%7C%20Ollama-orange?style=flat-square)](#-supported-models)
-[![Offline](https://img.shields.io/badge/offline-100%25%20air--gapped-red?style=flat-square)](#-4-k-cli-airgap----sovereign-offline-mode)
+[![CI](https://github.com/krishivjoshi219-collab/K-Cli/actions/workflows/ci.yml/badge.svg)](https://github.com/krishivjoshi219-collab/K-Cli/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-114%20passing-brightgreen?style=flat-square&logo=pytest)](tests/)
+[![Models](https://img.shields.io/badge/models-ANY%20model%2C%20no%20lock--in-orange?style=flat-square)](#-supported-models)
+[![Ollama](https://img.shields.io/badge/local-Ollama%20supported%20(free)-blueviolet?style=flat-square)](#-local-models-free-no-api-key)
+[![Offline](https://img.shields.io/badge/offline-100%25%20air--gapped%20mode-red?style=flat-square)](#-air-gapped-sovereign-mode)
+[![GitHub Stars](https://img.shields.io/github/stars/krishivjoshi219-collab/K-Cli?style=flat-square&color=gold)](https://github.com/krishivjoshi219-collab/K-Cli/stargazers)
 
 </div>
 
 ---
 
-## What is this?
-
-You're building something. Your test runner crashes. Your PR sits un-reviewed for 3 days. Your junior dev just merge-conflicted main. You spend 40 minutes asking ChatGPT the same thing in 4 different tabs.
-
-**K-CLI fixes all of that.**
-
-It's an agentic AI workstation that plugs into your terminal, your git repo, and your GitHub. It doesn't just answer questions — it runs a **3-agent adversarial Red Team vs Blue Team vs Judge** loop to verify its own code before touching a single file. It watches your dev server in the background and **self-heals crashes while you sleep**. It routes tasks to cheap local models (free) or frontier models ($0.003) based on complexity — automatically.
+## ⚡ Install in one line
 
 ```bash
-pip install -e .
-k "build me a FastAPI auth system with JWT and refresh tokens"
+curl -sSL https://raw.githubusercontent.com/krishivjoshi219-collab/K-Cli/main/install.sh | bash
 ```
 
-That's it. Watch it go.
+Or with pip (if you already have Python 3.11+):
+
+```bash
+pip install -e . && k-cli codex
+```
+
+**No API key required to start** — works 100% locally with [Ollama](https://ollama.com).
 
 ---
 
-## In 30 seconds
+## What is K-CLI?
+
+You know that feeling when your CI fails at 2am, your PR has 47 unread comments, and you're context-switching between 4 AI tabs to fix a 3-line bug?
+
+**K-CLI is the fix.**
+
+It's a full **agentic AI workstation** that lives in your terminal. It doesn't just answer questions — it:
+
+- 🔥 **Runs 5 AI models simultaneously** and picks the best code via consensus
+- 👻 **Watches your crashes** in the background and heals them without you asking
+- 🐙 **Reviews, fixes, and merges PRs** autonomously  
+- ⚔️ **Resolves git merge conflicts** with 3-way AI semantic understanding
+- 🛡️ **Scans for security vulnerabilities** and surgically patches them
+- 🎯 **Bisects regressions** through git history to find the exact bad commit
+- 🤖 **Uses ANY model** — your local Ollama, GPT-4o, Claude, Gemini, Groq — no lock-in
+
+---
+
+## The 30-second demo
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│ ⚡ K-CLI  │ gemini-2.0-flash  │  main (+3 ~0)  │ 🏎️ 185 tok/s  │ 💰 $0.027 saved  │
+│ ⚡ K-CLI  │ 🤖 gemini-2.0-flash  │  main (+3 ~0)  │ 🏎️ 192 tok/s  │ 💰 $0.031  │
 ├──────────────────┬──────────────────────────────────────┬──────────────────────────┤
-│ 🚀 1-CLICK       │ 👑 K-CLI Agentic Workstation          │ 📜 LIVE DIFFS            │
-│                  │                                      │   • auth.py  (+42 -7)    │
-│ [ 👻 Ghost ]     │ > build me a FastAPI auth system      │   • models.py (+18 -0)   │
-│ [ 🐝 Swarm ]     │                                      │   • tests/   (+53 -0)    │
-│ [ 🧠 Synapse ]   │ 🔵 Blue Agent → Writing code...      │                          │
-│ [ 🛡️ Airgap ]   │ 🔴 Red Agent  → 14 attack tests      │ ⚡ BACKGROUND             │
-│ [ 🎯 Bisect ]    │ ⚖️ Judge      → 14/14 passed ✔       │   Swarm: Active          │
-│ [ 👁️ PR Watch ]  │                                      │   Ghost: Monitoring      │
-│ [ ⚡ Router ]    │ ✔ auth.py verified (AST + pytest)    │   Verifier: Idle         │
-│ [ 🌿 Garden ]    │ ✔ 53 lines written, 0 hallucinations │                          │
-│ [ 💬 Explain ]   ├──────────────────────────────────────┤ 📊 METRICS               │
-│ [ 🏗️ Scaffold ]  │ ⚡ Plan  ⚔️ Conflict  🐙 GitHub       │   TTFT:  0.12s           │
-│ [ 🔑 API Keys ]  │ 🔑 Keys  🤖 Models   🛡️ Security      │   Saved: $0.027 today    │
+│ 🚀 LAUNCHER      │ 💬 K-CLI Agentic Workstation          │ 📜 LIVE DIFFS            │
+│                  │                                      │   auth.py   (+42 −7)     │
+│ [ ⚡ 5-Swarm ]   │ > audit my auth module               │   models.py (+18 −0)     │
+│ [ 🤖 Models ]    │                                      │   tests/    (+53 −0)     │
+│ [ 📖 Codex ]     │ ╔══ 🧠 Thinking (1.2s)... ▼         │                          │
+│ [ 🔑 API Keys ]  │ ║  · Scanning AST context            │ ⚡ BACKGROUND             │
+│ [ 👻 Ghost ]     │ ║  · 5 models generating in parallel │   Swarm: 5/5 active      │
+│ [ 🐝 Swarm ]     │ ║  · Cross-model peer review running │   Ghost: monitoring      │
+│ [ ⚔️ Conflicts ] │ ╚═════════════════════════════════  │   Verifier: AST ✓        │
+│ [ 🐙 GitHub ]    │                                      │                          │
+│ [ 🛡️ Security ]  │ 🔴 CRITICAL: SQL injection line 47   │ 📊 TELEMETRY             │
+│ [ 🎯 Bisect ]    │ 🟡 WARNING:  Weak JWT salt line 83   │   Tokens:  2,847         │
+│ [ 👁️ PR Watch ]  │ 🟡 WARNING:  No rate limiting         │   Saved:   $0.031        │
+│ [ 🌿 Garden ]    │                                      │   TTFT:    0.12s         │
+│ [ 💬 Explain ]   │ ✅ Auto-healer patched 3 issues      │                          │
+│ [ 🏗️ Scaffold ]  │ ✅ AST verified · 53 tests pass      │                          │
 └──────────────────┴──────────────────────────────────────┴──────────────────────────┘
+  Ctrl+O Codex · Ctrl+U 5-Swarm · Ctrl+M Models · Ctrl+A Keys · Ctrl+K Conflicts
 ```
 
-Full-screen TUI (`k` or `k-cli ui`), or bare terminal (`k "your task"`). Your choice.
+Launch it:
+
+```bash
+k          # → full TUI workstation
+k-cli ui   # → same thing
+k-cli codex  # → interactive setup wizard
+```
 
 ---
 
-## The 10 things that make devs go "wait, that's real?"
+## The features that make devs go "wait, that's real?"
 
-### 👻 1. Ghost Terminal — It watches your crashes and heals them silently
+### 🤖 1. Use ANY model — no lock-in, ever
 
-Run your dev server, compiler, or test suite through K-CLI Ghost. The moment it sees a traceback, it extracts AST context, writes a surgical patch, verifies it compiles and tests pass, and pings you with a single keypress diff.
+K-CLI dynamically discovers every model on your system by **asking Ollama directly** (`/api/tags`) and querying live Cloud APIs. No hardcoded model lists. No "we only support these 5 models." 
+
+Type literally anything:
+
+```bash
+k-cli audit "build a rate limiter" --models "gemini-2.0-flash,claude-3-7-sonnet,deepseek-reasoner,gpt-4o,qwen2.5-coder:7b"
+```
+
+```
+✔  gemini-2.0-flash        → candidate generated (0.84s, 847 tokens, AST: pass)
+✔  claude-3-7-sonnet       → candidate generated (1.24s, 1203 tokens, AST: pass)
+✔  deepseek-reasoner       → candidate generated (2.10s, 2847 tokens, AST: pass)
+✔  gpt-4o                  → candidate generated (0.97s, 934 tokens, AST: pass)
+✔  qwen2.5-coder:7b        → candidate generated (3.41s, 1102 tokens, AST: pass)
+
+Cross-model peer review complete. Consensus: deepseek-reasoner (score: 9.2/10)
+```
+
+Supports **any model string** — `ollama/llama3.2`, `openai/o3-mini`, `anthropic/claude-3-7-sonnet`, `groq/llama-3.3-70b-versatile`, `krishivjoshi/bankai-7b`, custom fine-tunes. If your inference backend serves it, K-CLI runs it.
+
+---
+
+### ⚡ 2. 5-Model Parallel Audit & Consensus Swarm
+
+Not "one model writes code and you hope for the best." **Five models generate simultaneously.** Then they peer-review each other's code. Then an AST verifier runs ground-truth tests. The winner is selected (or synthesized) from the consensus.
+
+```bash
+k-cli audit "implement thread-safe connection pool" --models "gemini-2.0-flash,gpt-4o,claude-3-7-sonnet,deepseek-reasoner,qwen2.5-coder:7b"
+```
+
+Or press **`Ctrl+U`** in the TUI. Or type `/audit <task>` in the chat stream.
+
+```
+⚡ 5-Model Consensus Audit
+─────────────────────────────────────────────────────────────────────────
+  Model                  Latency    Tokens    AST   Peer Score
+  ─────────────────────────────────────────────────────────────────────
+  deepseek-reasoner      2.1s       2847      ✓      9.2/10  ← WINNER
+  claude-3-7-sonnet      1.2s       1203      ✓      8.8/10
+  gemini-2.0-flash       0.8s        847      ✓      8.4/10
+  gpt-4o                 1.0s        934      ✓      8.1/10
+  qwen2.5-coder:7b       3.4s       1102      ✓      7.9/10
+─────────────────────────────────────────────────────────────────────────
+  Consensus achieved · 100% AST pass · Applying winner
+```
+
+---
+
+### 👻 3. Ghost Terminal — watches and heals crashes while you work
+
+Run your dev server, test suite, or build through K-CLI Ghost. The moment it sees a stack trace, it extracts AST context, generates a surgical patch, verifies it passes tests, and shows you a 1-keypress diff.
 
 ```bash
 k-cli ghost "pytest"
+k-cli ghost "npm run dev"
+k-cli ghost "cargo run"
 ```
 
 ```
-👻  GHOST AUTOPILOT TRIGGERED
-────────────────────────────────────────────────────────────────
+👻  GHOST AUTOPILOT
+────────────────────────────────────────────────────────────
   Intercepted: TypeError at src/auth/middleware.py:42
-  Root cause:  jwt.decode() called without algorithms kwarg
-  Confidence:  97.3%
-  Patch ready: [ Y  Apply (1 line change) ]  [ D  View Diff ]  [ N  Dismiss ]
+  Root cause:  jwt.decode() missing algorithms= kwarg
+  Confidence:  97.3%  ·  Patch ready (1 line change)
+
+  [ Y  Apply ]  [ D  View Diff ]  [ N  Skip ]  [ S  Open in TUI ]
 ```
 
-Works with `pytest`, `npm run dev`, `cargo run`, `go build`, `make` — anything that writes to stdout.
+Set it up once and it monitors forever. Works with anything that writes to stdout.
 
 ---
 
-### 🐝 2. Adversarial Swarm — 3 agents argue until the code is bulletproof
+### ⚔️ 4. AI Merge Conflict Studio — 3-way semantic resolution
 
-Not "write me code and hope for the best." **Blue Agent** writes the implementation. **Red Agent** immediately generates 14 adversarial tests: null inputs, race conditions, boundary overflows, injection attacks. **Judge** runs everything through AST verification + compiler + pytest. Loop repeats until consensus.
-
-```bash
-k-cli swarm "implement a thread-safe rate limiter" --rounds 3
-```
-
-```
-Round 1/3
-  🔵 Blue  → Implemented TokenBucketRateLimiter with threading.Lock
-  🔴 Red   → Race condition test: 500 threads hammering acquire()
-  ⚖️ Judge → 1 ThreadSanitizer violation detected. Retrying...
-
-Round 2/3
-  🔵 Blue  → Switched to atomics via threading.Semaphore + double-checked lock
-  🔴 Red   → 500-thread storm + negative limit edge case
-  ⚖️ Judge → All 14 attacks neutralized. AST clean. ✔ CONSENSUS REACHED
-```
-
-Zero hallucinations. The code doesn't ship until it survives the red team.
-
----
-
-### 🧠 3. Synapse Graph — 99.7% token compression via AST code graph
-
-Indexing a whole repo into a prompt is expensive and slow. Synapse builds an in-memory SQLite AST dependency graph across every function, class, and module, then extracts *only the minimal subgraph* relevant to your task.
+Not just "pick ours or theirs." K-CLI does **3-way semantic AST analysis** — understands _why_ the conflict happened and generates a resolution that preserves the intent of both sides.
 
 ```bash
-k-cli synapse "refactor the payment transaction rollback logic"
+k-cli conflict list      # find all conflicts in repo
+k-cli conflict resolve   # AI resolves all of them
+k-cli conflict resolve --file src/auth.py --auto-accept  # non-interactive
 ```
 
 ```
-  Full repo context  →  1,200,000 tokens  ($3.60 per Claude 3.5 Sonnet call)
-  Synapse subgraph   →      1,240 tokens  ($0.004)
-  Compression ratio  →       99.7%
-  Matched symbols    →  PaymentProcessor::rollback, Transaction::revert, db_session
-  Latency            →       0.4s
-```
-
-Context goes in surgical. Answers come back precise.
-
----
-
-### 🛡️ 4. `k-cli airgap` — Sovereign Offline Mode (zero bytes leave your machine)
-
-Enterprises, defense contractors, and healthcare teams can run K-CLI completely offline. Airgap mode restricts all egress to `localhost`, detects your local toolchains (gcc, rustc, git, python), and routes all inference to Ollama/llama.cpp/GGUF local SLMs.
-
-```bash
-k-cli airgap
-```
-
-```
-  🛡️  SOVEREIGN AIR-GAP ACTIVE
-  ─────────────────────────────────────────
-  Network egress    →  🚫 BLOCKED (0 bytes out)
-  Local toolchains  →  Python AST, GCC/Clang, rustc, Git
-  Local models      →  qwen2.5-coder:1.5b, deepseek-coder:6.7b
-  Violations        →  0
+⚔️  Conflict Studio — src/auth.py
+────────────────────────────────────────────────────────────
+  Base intent:     rate limiting per IP (class method)
+  HEAD adds:       Redis-based distributed rate limit
+  Incoming adds:   in-memory LRU fallback
+  AI resolution:   Redis-primary + LRU fallback (both preserved)
+  AST verified:    ✓  Tests pass: ✓
 ```
 
 ---
 
-### 🎯 5. `k-cli bisect` — AI-powered git blame on steroids
-
-That bug that appeared 3 weeks ago and nobody noticed? Bisect runs binary search across your entire commit history with an AI oracle, isolates the exact commit that broke the test, explains the diff in plain English, and synthesizes a fix.
+### 🐙 5. Full GitHub PR Lifecycle — review, fix, merge autonomously
 
 ```bash
-k-cli bisect "pytest tests/payment/ -q" --good HEAD~20 --bad HEAD
-```
-
-```
-  Searching 20 commits...  [██████████] done
-  ─────────────────────────────────────────────────────
-  Culprit commit:  a3f921b  "chore: upgrade decimal lib"
-  Root cause:      Decimal.quantize() default rounding changed in v2.1
-                   Affects: order_total > $1,000 edge case
-  Fix synthesized: 1 line change in utils/currency.py ✔
+k-cli pr list                    # list open PRs
+k-cli pr review 42               # AI reviews PR #42 (bugs, security, perf)
+k-cli pr review 42 --post-comment  # posts review as GitHub comment
+k-cli pr fix 42                  # fetches, fixes, verifies, pushes
+k-cli pr merge 42 --method squash  # merges after CI passes
 ```
 
 ---
 
-### 👁️ 6. `k-cli watch` — 24/7 autonomous PR reviewer
-
-Point it at your GitHub repo. Every new PR gets a full compiler-grade review (security vulnerabilities, race conditions, null deref, performance regressions), a structured comment posted back to GitHub, and auto-merge if CI passes.
+### 🛡️ 6. Security Auto-Healer — AST scanner + surgical patcher
 
 ```bash
-k-cli watch --interval 60 --auto-merge
+k-cli security scan .            # scan entire codebase
+k-cli security heal src/auth.py  # fix all vulns in one file
 ```
 
 ```
-  👁️  Watching krishivjoshi219-collab/K-Cli  (polling every 60s)
+🛡️  Security Scan · src/auth.py
+────────────────────────────────────────────────────────────
+  🔴 CRITICAL  SQL injection via f-string interpolation (line 47)
+  🟡 WARNING   No rate limiting on /login endpoint (line 83)
+  🟡 WARNING   JWT secret hardcoded in source (line 12)
+  🟢 INFO      HTTPS enforced
+
+  Healing...  [████████████████████] 3/3 patches applied · All tests pass
+```
+
+---
+
+### 🎯 7. AI Git Bisect — finds the exact commit that broke your tests
+
+```bash
+k-cli bisect "pytest tests/ -q"
+```
+
+```
+🎯  AI Git Bisect
+────────────────────────────────────────────────────────────
+  Running binary search over 847 commits...
+  Bad commit found: a3f9c2d (2 days ago)
+  Author: @you
+  Message: "refactor: extract auth middleware"
+  Culprit: removed token refresh handler (line 127 deleted)
+  Fix suggestion: restore refresh_token() in middleware.py
+```
+
+---
+
+### 🌿 8. Repo Gardener — sweeps dead code, stale branches, and TODOs
+
+```bash
+k-cli garden --sweep
+```
+
+Finds dead code, stale branches (no activity in 90d), TODO/FIXME comments with suggested fixes, duplicate functions, and missing docstrings. All with 1-click apply.
+
+---
+
+### 📦 9. Local Models — completely free, no API key needed
+
+K-CLI discovers every model installed in Ollama with full metadata:
+
+```bash
+k-cli models list
+```
+
+```
+🤖  Discovered Models (Ollama · live scan)
+──────────────────────────────────────────────────────────────────────
+  MODEL                    SIZE    QUANT     SPEED     BEST FOR
   ──────────────────────────────────────────────────────────────────
-  PR #47 → "feat: add redis session store"
-    Security   ✔  No injection vectors found
-    Race cond. ✔  Session writes are atomic
-    Tests      ✔  Coverage increased by 6%
-    Verdict    →  ✔ Approved + posted review comment
-    CI status  →  passed → auto-merged (squash)
+  qwen2.5-coder:7b         4.7GB   Q4_K_M    fast      Code generation
+  llama3.2:3b              2.0GB   Q4_K_M    fastest   Quick edits
+  deepseek-coder-v2:16b    9.1GB   Q4_K_M    medium    Complex refactors
+  codellama:13b            7.4GB   Q4_K_M    medium    Code Q&A
+──────────────────────────────────────────────────────────────────────
+
+Or type any custom model: ollama/qwen2.5:32b, openai/o3-mini, groq/llama-3.3-70b...
 ```
 
 ---
 
-### ⚡ 7. Smart Model Router — stops you burning money on GPT-4 for typos
-
-Every task gets a complexity score (0–100). Trivial tasks (docstrings, formatting, comments) route to your local Ollama for **$0.00**. Medium tasks go to DeepSeek. Complex architecture work goes to Claude/GPT-4. Savings logged per session.
+### 🛡️ 10. Air-Gapped Mode — 100% offline, zero data leaves your machine
 
 ```bash
-k-cli route "fix typo in README"
-# Tier: TRIVIAL (score: 5/100)  →  Local Ollama    FREE    Saved: $0.030 vs GPT-4
-
-k-cli route "architect a distributed event sourcing system with CQRS"
-# Tier: COMPLEX (score: 95/100) →  Claude 3.5 Sonnet  $0.003  Saved: $0.027 vs GPT-4
+k-cli airgap --enable
+k "fix this auth bug"  # runs entirely locally, zero telemetry
 ```
 
-Real routing logic. Not a gimmick.
-
----
-
-### 🌿 8. `k-cli garden` — your repo has a health score now
-
-Scans for dead unreferenced functions, unpinned `requirements.txt` deps, missing docstrings, stale TODO comments, and orphaned test files. Reports a health score. Optionally opens a clean maintenance PR.
-
-```bash
-k-cli garden
-```
-
-```
-  🌿 Repo Health Report
-  ────────────────────────────────────────────────────
-  Score             →  91.5 / 100
-  Dead functions    →  3  (utils/legacy.py:42, :88, old_api.py:15)
-  Unpinned deps     →  2  (requests, boto3 — no version pin)
-  Stale TODOs       →  7  (oldest: 14 months)
-  Recommendation    →  Open maintenance PR? [Y/N]
-```
-
----
-
-### 💬 9. `k-cli explain` — ask your codebase anything in plain English
-
-Semantic search over your entire codebase using AST symbol indexing. Ask architectural questions, trace data flows, find where a bug could live — without leaving the terminal.
-
-```bash
-k-cli explain "where does JWT token validation actually happen?"
-```
-
-```
-  ▸ Flow traced across 3 files:
-    1. core/session.py:88   → authenticate_request() → extracts Bearer token
-    2. core/session.py:140  → verify_jwt_claims()    → exp, iat, nbf, aud checked
-    3. agents/persona.py:22 → DomainPersona.bind()   → role injection post-verify
-  ▸ No data leaves your machine.
-```
-
----
-
-### 🏗️ 10. `k-cli scaffold` — turn one sentence into a production codebase
-
-Not a template. A full multi-file, tested, AST-valid, Docker-ready application generated from a single natural language prompt.
-
-```bash
-k-cli scaffold "FastAPI + SQLAlchemy 2.0 async + Redis cache + Alembic + pytest + Docker" --write
-```
-
-```
-  🏗️  Scaffolded 7 production files  (0 AST errors, 92% test coverage)
-  ──────────────────────────────────────────────────────────────────────
-  ✔  main.py          (FastAPI app factory + lifespan events)
-  ✔  models.py        (SQLAlchemy 2.0 async ORM models)
-  ✔  schemas.py       (Pydantic v2 validators)
-  ✔  config.py        (Pydantic Settings + env management)
-  ✔  alembic/         (Migration environment pre-configured)
-  ✔  Dockerfile       (Multi-stage, non-root user, slim final image)
-  ✔  tests/test_api.py (Pytest async integration suite)
-```
+Perfect for enterprise, regulated industries, or when you simply don't want your code leaving your laptop.
 
 ---
 
 ## Supported Models
 
-K-CLI speaks to everything. Local, cloud, or hybrid.
-
-| Provider | Models |
-| :--- | :--- |
-| **Ollama (local, free)** | `qwen2.5-coder`, `deepseek-r1`, `llama3.3`, `starcoder2`, `phi-4`, `mistral`, `codellama` |
-| **llama.cpp / GGUF** | Any `.gguf` model via HTTP server or native in-process inference |
-| **Google Gemini** | `gemini-2.0-flash`, `gemini-2.0-pro`, `gemini-1.5-pro` |
-| **Anthropic** | `claude-3-7-sonnet`, `claude-3-5-sonnet`, `claude-3-5-haiku` |
-| **OpenAI** | `gpt-4o`, `gpt-4o-mini`, `o1`, `o3-mini` |
-| **DeepSeek** | `deepseek-v3`, `deepseek-r1` |
-| **Groq** | `llama-3.3-70b`, `qwen-2.5-coder-32b` @ 300+ tok/s |
-| **Mistral** | `codestral`, `mistral-large` |
-| **OpenRouter** | 100+ models via unified API |
-| **vLLM / LM Studio / LocalAI / Jan** | Any OpenAI-compatible local endpoint |
-
-Switch at runtime: `k-cli model set deepseek-r1`
+| Provider | How K-CLI discovers them |
+|---|---|
+| **Ollama** (local, free) | Live query of `/api/tags` — every model you've pulled |
+| **LM Studio** | Auto-detected at `localhost:1234` |
+| **Google Gemini** | Dynamic API enumeration |
+| **OpenAI** | Any GPT-4, o1, o3 model |
+| **Anthropic Claude** | Claude 3.5, 3.7 Sonnet, Opus |
+| **Groq** | Live query of `/v1/models` — high-speed LPU inference |
+| **DeepSeek** | DeepSeek Coder, Reasoner |
+| **Custom / fine-tuned** | Type any model string. No restrictions. |
 
 ---
 
-## Quick Start
+## Keyboard Shortcuts (TUI)
+
+| Key | Action |
+|---|---|
+| `Ctrl+O` | 📖 Codex Setup Hub (APIs, local models, DevDocs) |
+| `Ctrl+U` | ⚡ 5-Model Swarm Audit |
+| `Ctrl+M` | 🤖 Dynamic Model Hub |
+| `Ctrl+A` | 🔑 Universal API Key Vault |
+| `Ctrl+K` | ⚔️ 3-Way Merge Conflict Studio |
+| `Ctrl+G` | 🐙 GitHub Command Center |
+| `Ctrl+S` | 🛡️ Security Auto-Healer |
+| `Ctrl+H` | 🏠 Local GitHub Hub |
+| `Ctrl+R` | 🔥 Trending Repos |
+| `Ctrl+L` | 🧹 Clear canvas |
+
+### Slash commands
+
+```
+/audit <task>    → 5-model swarm audit
+/swarm           → same as above
+/codex           → open setup hub
+/model           → switch model
+/keys            → open API vault
+/gh              → GitHub center
+/conflict        → conflict studio
+/security        → security scanner
+/plan            → structured task planner
+/demo            → watch a live demo (no API key needed)
+/clear           → clear canvas
+```
+
+---
+
+## Quickstart
+
+### Option A — Local only (free, no API key)
 
 ```bash
-# 1. Clone and install
+# Install Ollama first: https://ollama.com
+ollama pull qwen2.5-coder:7b   # 4.7GB, best free coding model
+
+# Install K-CLI
+curl -sSL https://raw.githubusercontent.com/krishivjoshi219-collab/K-Cli/main/install.sh | bash
+
+# Launch
+k
+```
+
+### Option B — With Cloud APIs (faster, smarter)
+
+```bash
+# Install
+curl -sSL https://raw.githubusercontent.com/krishivjoshi219-collab/K-Cli/main/install.sh | bash
+
+# Open Codex setup hub (auto-detects your keys)
+k-cli codex
+
+# Or set keys directly
+k-cli keys set GEMINI_API_KEY=AIza...
+k-cli keys set OPENAI_API_KEY=sk-...
+k-cli keys set GROQ_API_KEY=gsk_...
+```
+
+### Option C — pip install
+
+```bash
 git clone https://github.com/krishivjoshi219-collab/K-Cli.git
 cd K-Cli
-python -m venv .venv && source .venv/bin/activate
 pip install -e .
-
-# 2. Set an API key — or skip and use Ollama locally for free
-k-cli keys set GEMINI_API_KEY "your_key_here"
-
-# 3. Open the full-screen workstation
-k
-
-# 4. Or run a task directly from the terminal
-k "refactor my auth module to use async/await throughout"
-```
-
----
-
-## API Keys
-
-```bash
-k-cli keys                          # Check what's configured
-k-cli keys set ANTHROPIC_API_KEY "sk-ant-..."
-k-cli keys set OPENAI_API_KEY "sk-proj-..."
-k-cli keys set DEEPSEEK_API_KEY "sk-..."
-k-cli keys set GITHUB_TOKEN "ghp_..."
-k-cli keys test                     # Live test all provider endpoints
-k-cli keys import .env              # Import from existing .env file
-```
-
-All keys stored in `~/.kcli/credentials.env`. Nothing phoned home.
-
----
-
-## All CLI Commands
-
-```
-k-cli run      "prompt"           →  Single-shot agentic task
-k-cli ui                          →  Launch full-screen TUI workstation
-k-cli ghost    "command"          →  Attach crash healer to any process
-k-cli swarm    "task"             →  Adversarial 3-agent consensus loop
-k-cli synapse  "query"            →  AST code graph context extraction
-k-cli airgap                      →  Enable sovereign offline mode
-k-cli bisect   "test cmd"         →  AI git bisect regression hunter
-k-cli watch                       →  24/7 autonomous PR review bot
-k-cli route    "task"             →  Smart cost/latency model router
-k-cli garden                      →  Repo health audit & dead code sweep
-k-cli explain  "question"         →  Natural language codebase Q&A
-k-cli scaffold "description"      →  Full-stack project generator
-k-cli hub                         →  Local GitHub workstation analytics & commit streams
-k-cli trending                    →  Discover trending GitHub repos, AI agents & tools
-
-k-cli pr list                     →  List open pull requests
-k-cli pr review <num>             →  AI code review on a PR
-k-cli pr fix    <num>             →  Auto-fix failing PR
-k-cli pr merge  <num>             →  CI-gated auto-merge
-
-k-cli conflict list               →  Find all merge conflicts in repo
-k-cli conflict resolve            →  AI 4-way AST conflict resolution
-
-k-cli mcp list                    →  List connected MCP servers
-k-cli mcp add  <name> <cmd>       →  Connect a new MCP server
-k-cli mcp call <tool> <args>      →  Call any MCP tool directly
-
-k-cli keys                        →  Show API key status table
-k-cli keys set <KEY> <value>      →  Persist a provider key
-k-cli keys test                   →  Live test all provider endpoints
-
-k-cli model list                  →  Show all available models
-k-cli model set <model>           →  Switch active model
-k-cli model pull <model>          →  Pull a local Ollama model
-```
-
----
-
-## Python SDK
-
-```python
-from k_cli import KCLI
-
-with KCLI(model="deepseek-reasoner", local_fallback="qwen2.5-coder:1.5b") as agent:
-    # Generate code with compiler verification gate
-    result = agent.generate("write a lock-free queue in C++23")
-
-    # Autonomous GitHub workflows
-    agent.github.solve_issue(issue_number=42, auto_pr=True)
-    agent.github.create_release(tag_name="v2.0.0")
-
-    # 4-way AST merge conflict studio
-    agent.conflicts.resolve_all()
-
-    # Security vulnerability scan + auto-heal
-    agent.security.heal_all()
-
-    # Smart model routing with cost tracking
-    decision = agent.route("architect a CQRS event sourcing system")
-    print(f"→ {decision.selected_model} saves ${decision.savings_usd:.3f} vs GPT-4")
-
-    # Synapse AST code graph context extraction
-    ctx = agent.synapse("payment processing flow")
-    print(f"→ {ctx.compression_ratio:.0%} token reduction")
+k-cli codex
 ```
 
 ---
@@ -400,79 +380,91 @@ with KCLI(model="deepseek-reasoner", local_fallback="qwen2.5-coder:1.5b") as age
 ## Architecture
 
 ```
-k_cli/
-├── core/
-│   ├── llm_driver.py        ← Unified inference across 10+ providers with streaming
-│   ├── credentials.py       ← Multi-tier key discovery: ~/.kcli → .env → key.json
-│   ├── smart_router.py      ← Task complexity scorer + cost-optimal model selector
-│   ├── models_hub.py        ← Dynamic model registry, benchmark, and switcher
-│   ├── airgap.py            ← Sovereign offline mode with network egress restriction
-│   └── session.py           ← Multi-turn conversation state + context manager
+K-CLI Project Bankai v0.4
 │
-├── agents/
-│   ├── adversarial_swarm.py ← Red Team vs Blue Team vs Judge consensus engine
-│   ├── orchestrator.py      ← Multi-phase task planning and execution orchestrator
-│   ├── subagents.py         ← Parallel subagent DAG scheduler
-│   ├── scaffold_engine.py   ← Natural language → full-stack project generator
-│   └── persona.py           ← Specialized domain personas (Architect, Security, DevOps)
+├── k_cli/cli.py              → Typer CLI entry point (k-cli <command>)
+├── k_cli/tui/tui_app.py      → Full-screen Textual workstation
 │
-├── git/
-│   ├── conflict_resolver.py ← AST-aware 4-way merge conflict studio + LLM resolution
-│   ├── ai_bisect.py         ← AI-guided binary regression hunter
-│   ├── verifier.py          ← Multi-language AST + compiler + test verification gate
-│   ├── patcher.py           ← Surgical unified diff patcher with rollback
-│   ├── smart_git.py         ← Conventional commit + PR description generator
-│   └── repo_map.py          ← Full AST symbol tree with PageRank ranking
+├── k_cli/core/
+│   ├── llm_driver.py         → Universal LLM driver (all providers)
+│   ├── models_hub.py         → Dynamic model discovery (Ollama + Cloud)
+│   ├── credentials.py        → Universal API key vault
+│   ├── smart_router.py       → Cost-optimized model router
+│   └── session.py            → Persistent session manager
 │
-├── github/
-│   ├── github_client.py     ← Zero-dependency GitHub REST v3 client
-│   ├── github_engine.py     ← Issue solver, release publisher, CI inspector
-│   ├── local_hub.py        ← Local GitHub workstation analytics & commit streams
-│   ├── trending.py         ← GitHub trending discovery engine
-│   ├── pr_watcher.py        ← 24/7 background PR review and auto-merge bot
-│   └── dedup_engine.py      ← BM25 + AST semantic duplicate issue detector
+├── k_cli/agents/
+│   ├── adversarial_swarm.py  → 5+ model parallel audit consensus engine
+│   └── subagents.py          → Specialized agent roles
 │
-├── tools/
-│   ├── ghost_daemon.py      ← PTY-attached crash interceptor and auto-healer
-│   ├── synapse_graph.py     ← SQLite AST code graph + 99%+ context compressor
-│   ├── security_healer.py   ← Static AST vulnerability scanner with auto-healer
-│   ├── repo_gardener.py     ← Dead code + dependency + TODO health auditor
-│   ├── codebase_qa.py       ← Local semantic codebase search engine
-│   ├── incident_triage.py   ← Stack trace + CI log parser and root cause analyzer
-│   ├── mcp_client.py        ← Full Model Context Protocol (MCP) JSON-RPC client
-│   └── doc_retriever.py     ← Offline DevDocs SQLite documentation search
+├── k_cli/git/
+│   ├── conflict_resolver.py  → 3-way semantic git conflict resolution
+│   ├── verifier.py           → AST + compiler verification gate
+│   ├── patcher.py            → Surgical diff patcher
+│   ├── ai_bisect.py          → AI git bisect regression hunter
+│   └── smart_git.py          → Git workflow automation
 │
-└── tui/
-    ├── tui_app.py           ← 3-column Textual workstation with 1-click modals
-    ├── tui.py               ← Rich streaming renderer + live status bar
-    ├── tui_animations.py    ← ASCII banner + token throughput speedometer
-    └── diff_viewer.py       ← Side-by-side and inline diff visualizer
+├── k_cli/github/
+│   ├── github_client.py      → GitHub REST API v3 client
+│   ├── github_engine.py      → PR review, CI inspect, release manager
+│   ├── pr_watcher.py         → Autonomous PR watcher daemon
+│   ├── local_hub.py          → Local GitHub Hub aggregator
+│   ├── trending.py           → GitHub trending engine
+│   └── dedup_engine.py       → Request deduplication (BM25 + AST)
+│
+└── k_cli/tools/
+    ├── doc_retriever.py      → Offline DevDocs FTS5 database (Python, Rust, C++...)
+    ├── mcp_client.py         → Model Context Protocol (MCP) client
+    ├── security_healer.py    → AST security scanner + auto-patcher
+    ├── synapse_graph.py      → Code dependency graph engine
+    ├── repo_gardener.py      → Dead code + stale branch sweeper
+    └── incident_triage.py    → Stack trace parser + fix generator
 ```
 
 ---
 
-## Testing
+## Why not just use ChatGPT / Copilot / Cursor?
 
-300 test cases. 18 test suites. Adversarial fuzzer traversed every CLI path (53 paths, 0 crashes, 0 hangs):
-
-```bash
-pytest tests/ -v
-# 300 passed ✔
-
-python scripts/cli_traverser.py
-# 53 paths → 40 passed | 13 graceful rejects | 0 crashes | 0 hangs
-```
-
-Full audit at [`docs/CLI_TRAVERSAL_AUDIT.md`](docs/CLI_TRAVERSAL_AUDIT.md).
+| Feature | ChatGPT | GitHub Copilot | Cursor | **K-CLI** |
+|---|:---:|:---:|:---:|:---:|
+| Lives in terminal | ✗ | ✓ | ✗ | ✅ |
+| Watches crashes in background | ✗ | ✗ | ✗ | ✅ |
+| 5+ models simultaneously | ✗ | ✗ | ✗ | ✅ |
+| ANY model, no lock-in | ✗ | ✗ | ✗ | ✅ |
+| Reviews + merges PRs | ✗ | ✗ | ✗ | ✅ |
+| AI merge conflict resolution | ✗ | ✗ | ✗ | ✅ |
+| Security scanner + auto-healer | ✗ | ✗ | partial | ✅ |
+| AI git bisect | ✗ | ✗ | ✗ | ✅ |
+| 100% offline / air-gapped | ✗ | ✗ | ✗ | ✅ |
+| Free with local Ollama | ✗ | ✗ | ✗ | ✅ |
+| Open source | ✗ | ✗ | ✗ | ✅ MIT |
 
 ---
 
 ## Contributing
 
-Read [`CONTRIBUTING.md`](docs/CONTRIBUTING.md). It's short, casual, and has zero red tape. PRs welcome — even drafts.
+PRs welcome! Run the tests first:
+
+```bash
+pip install -e .
+pytest tests/ -v
+```
+
+114 tests, all passing. If you add a feature, add a test.
 
 ---
 
 ## License
 
-MIT. Use it in anything.
+MIT — build whatever you want with it.
+
+---
+
+<div align="center">
+
+**Built by [@krishivjoshi219](https://github.com/krishivjoshi219-collab)**
+
+⭐ Star this if you want "lazy dev autopilot" to become a real thing
+
+[Report a Bug](https://github.com/krishivjoshi219-collab/K-Cli/issues) · [Request a Feature](https://github.com/krishivjoshi219-collab/K-Cli/issues) · [Discussions](https://github.com/krishivjoshi219-collab/K-Cli/discussions)
+
+</div>
