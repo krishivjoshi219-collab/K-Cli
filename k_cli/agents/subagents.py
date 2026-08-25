@@ -1,6 +1,6 @@
 """
 subagents.py - Native Subagent Task Spawner & Multi-Agent Orchestrator for K-CLI
-Project Bankai Engine v0.2.0
+Project Bankai Engine v1.0.0
 
 Enables K-CLI to decompose complex user prompts into parallel subtasks:
   - [EXPLORER]   : Inspects workspace structure, AST symbol maps, locates files.

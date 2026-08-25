@@ -1,6 +1,6 @@
 """
 sdk.py - Universal Python SDK & Agentic Framework for K-CLI
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 
 Provides a clean, unified Python API for programmatic integration:
 ```python

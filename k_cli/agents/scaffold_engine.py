@@ -1,6 +1,6 @@
 """
 scaffold_engine.py - Natural Language Full-Stack Engine for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Converts high-level natural language prompts or API specs into a full,
 production-grade, multi-file, tested, and compiling application architecture.

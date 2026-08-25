@@ -1,6 +1,6 @@
 """
 test_github_engine.py - Comprehensive Unit & Integration Tests for GitHub Ecosystem Engine
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 """
 
 import json
@@ -93,12 +93,12 @@ def test_list_releases_and_create_release(mock_github_engine):
     mock_releases_data = [
         {
             "id": 5001,
-            "tag_name": "v0.4.0",
-            "name": "K-CLI v0.4.0 Release",
+            "tag_name": "v1.0.0",
+            "name": "K-CLI v1.0.0 Release",
             "body": "## What's Changed\n- Added GitHub Engine & Model Hub",
             "draft": False,
             "prerelease": False,
-            "html_url": "https://github.com/bankai-org/k-cli-test/releases/tag/v0.4.0",
+            "html_url": "https://github.com/bankai-org/k-cli-test/releases/tag/v1.0.0",
             "published_at": "2026-08-22T12:00:00Z",
             "assets": [],
         }
@@ -107,11 +107,11 @@ def test_list_releases_and_create_release(mock_github_engine):
     with patch.object(mock_github_engine, "_make_request", return_value=mock_releases_data):
         releases = mock_github_engine.list_releases()
         assert len(releases) == 1
-        assert releases[0].tag_name == "v0.4.0"
+        assert releases[0].tag_name == "v1.0.0"
 
     with patch.object(mock_github_engine, "_make_request", return_value=mock_releases_data[0]):
-        new_rel = mock_github_engine.create_release(tag_name="v0.4.0", name="K-CLI v0.4.0 Release")
-        assert new_rel.tag_name == "v0.4.0"
+        new_rel = mock_github_engine.create_release(tag_name="v1.0.0", name="K-CLI v1.0.0 Release")
+        assert new_rel.tag_name == "v1.0.0"
 
 
 def test_list_workflow_runs(mock_github_engine):

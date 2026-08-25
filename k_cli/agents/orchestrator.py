@@ -1,5 +1,5 @@
 """
-orchestrator.py - Sequential Persona State Machine for K-CLI (Project Bankai Engine v0.1)
+orchestrator.py - Sequential Persona State Machine for K-CLI (Project Bankai Engine v1.0.0)
 
 Manages a single 1.5B GGUF model in RAM while switching system personas sequentially:
   [RESEARCHER] -> [ARCHITECT] -> [CODER] -> [CRITIC] -> [VERIFIER] -> (Auto-Debug Loop max 3 retries)

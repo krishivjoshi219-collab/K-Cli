@@ -1,6 +1,6 @@
 """
 ai_bisect.py - AI-Powered Git Bisect & Regression Hunter for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Automates binary git search (`git bisect`) with an AI oracle and local test runner
 to pinpoint the exact regression-introducing commit, explain the root cause,

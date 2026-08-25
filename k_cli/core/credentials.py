@@ -1,6 +1,6 @@
 """
 credentials.py - Universal Credentials, Key Auto-Detection & Preferences Manager for K-CLI
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 
 Provides multi-tier key discovery, auto-detection for ANY entered API key,
 interactive terminal setup, developer preferences (auto-approve, session storage),

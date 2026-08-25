@@ -1,5 +1,5 @@
 """
-tui_app.py - Flagship Hybrid Developer Workstation for K-CLI (Project Bankai v0.4.0)
+tui_app.py - Flagship Hybrid Developer Workstation for K-CLI (Project Bankai v1.0.0)
 
 A fusion of Claude Code, Google Antigravity (AGY), GitHub Copilot CLI, and Cursor:
 1. Top Cyber HUD: Active Model Dropdown, Git Branch Pill with diff stats, RAM RSS Gauge, Speedometer (tok/s), USD Cost Ticker, Verifier Badge.
@@ -1034,7 +1034,7 @@ class GitHubCenterModal(ModalScreen[None]):
 
     @on(Button.Pressed, "#btn-gh-release-modal")
     def on_release(self) -> None:
-        rel = GitHubEngine().create_release(tag_name="v0.4.0", name="K-CLI Release")
+        rel = GitHubEngine().create_release(tag_name="v1.0.0", name="K-CLI Release")
         self.app.notify(f"Published release {rel.tag_name}!", title="Release Published", severity="information")
 
     @on(Button.Pressed, "#btn-gh-close-modal")
@@ -1485,7 +1485,7 @@ class KCliCyberWorkstation(App):
     """
 
     TITLE = "K-CLI"
-    SUB_TITLE = "Agentic Coding Workstation v0.4.0"
+    SUB_TITLE = "Agentic Coding Workstation v1.0.0"
 
     CSS = """
     Screen {

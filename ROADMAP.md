@@ -2,7 +2,7 @@
 
 > Track what's shipping next and what's planned.
 
-### 🚢 v0.5 — Shipping Soon
+### 🚢 v1.1 — Shipping Soon
 
 - [ ] **`k-cli demo` command** — runs a fully automated no-API-key demo using Ollama  
 - [ ] **Shell completions** — `k-cli --install-completion` for bash, zsh, fish  
@@ -11,7 +11,7 @@
 - [ ] **Windows native support** — fix remaining path/terminal issues  
 - [ ] **`k-cli watch`** — autonomous PR watcher daemon (polls GitHub every N seconds)  
 
-### 🔭 v0.6 — On the horizon
+### 🔭 v1.2 — On the horizon
 
 - [ ] **More model providers** — Mistral AI, Together.ai, Cohere, Fireworks, Replicate  
 - [ ] **VS Code extension** — sidebar panel that embeds K-CLI  

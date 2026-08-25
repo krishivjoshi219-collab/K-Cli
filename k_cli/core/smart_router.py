@@ -1,6 +1,6 @@
 """
 smart_router.py - Cost & Latency Smart Model Router for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Analyzes task complexity, required reasoning depth, and context size, then
 dynamically routes queries to the optimal local SLM or cloud LLM, calculating

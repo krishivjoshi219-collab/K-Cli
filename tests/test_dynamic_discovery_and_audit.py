@@ -1,6 +1,6 @@
 """
 test_dynamic_discovery_and_audit.py - Unit & Integration Tests for Dynamic Model Discovery & 5+ Model Consensus Swarm
-Project Bankai v0.4.0 (AGY Edition)
+Project Bankai v1.0.0 (AGY Edition)
 
 Verifies:
 1. Dynamic Ollama discovery from daemon (/api/tags) with size and parameter extraction.

@@ -1,6 +1,6 @@
 """
 test_tui_app.py - Tests for KCliCyberWorkstation (Textual 8.x)
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 """
 
 import os

@@ -1,6 +1,6 @@
 """
 cli_traverser.py - Automated CLI Mapping, Traversal & Fuzzing Runner
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Executes root command, discovers all subcommands & flags, traverses execution
 paths, injects boundary values, detects unhandled tracebacks, and outputs a

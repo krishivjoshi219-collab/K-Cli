@@ -89,7 +89,7 @@ def build_demo_recording():
 █████╔╝      ██║     ██║     ██║
 ██╔═██╗      ██║     ██║     ██║
 ██║  ██╗     ╚██████╗███████╗██║
-╚═╝  ╚═╝      ╚═════╝╚══════╝╚═╝{C_RESET}  {C_BOLD}{C_BRIGHT_GREEN}Project Bankai v0.4.0 — Agentic AI Workstation{C_RESET}
+╚═╝  ╚═╝      ╚═════╝╚══════╝╚═╝{C_RESET}  {C_BOLD}{C_BRIGHT_GREEN}Project Bankai v1.0.0 — Agentic AI Workstation{C_RESET}
 {C_GRAY}────────────────────────────────────────────────────────────────────────────────────────────{C_RESET}
 """
     rec.emit(banner, delay_after=0.8)

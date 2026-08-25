@@ -1,6 +1,6 @@
 """
 test_tui_app_screens.py - Unit & Modal Tests for Flagship Hybrid KCliCyberWorkstation
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 """
 
 import os

@@ -1,5 +1,5 @@
 """
-verifier.py - Ground-Truth Execution Guard for K-CLI (Project Bankai Engine v0.2)
+verifier.py - Ground-Truth Execution Guard for K-CLI (Project Bankai Engine v1.0.0)
 
 Intercepts generated code blocks (Python, C++, Bash), performs immediate AST and
 syntax checks, auto-detects project test frameworks (pytest, cargo test, npm test,

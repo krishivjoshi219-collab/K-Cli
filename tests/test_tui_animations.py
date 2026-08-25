@@ -1,6 +1,6 @@
 """
 test_tui_animations.py - Unit & Integration Test Suite for K-CLI Cyber-TUI & Visual Experience
-Project Bankai Engine v0.2.0
+Project Bankai Engine v1.0.0
 
 Tests:
 1. Cyberpunk color palettes, hex/rgb conversions, and gradient text interpolation.

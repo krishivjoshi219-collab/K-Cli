@@ -1,6 +1,6 @@
 """
 test_security_healer.py - Comprehensive Unit & Integration Test Suite for SecurityHealer
-Project Bankai Engine v0.3.0
+Project Bankai Engine v1.0.0
 
 Tests:
 1. Static AST & Regex Detection:

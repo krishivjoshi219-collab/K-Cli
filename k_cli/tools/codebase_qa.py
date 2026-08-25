@@ -1,6 +1,6 @@
 """
 codebase_qa.py - Codebase Natural Language Search & Semantic Q&A for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Answers architectural, security, and structural questions about the local codebase
 by querying local AST symbols, SQLite FTS5 docs, and git changes with zero cloud data leakage.

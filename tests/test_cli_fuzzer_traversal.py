@@ -1,6 +1,6 @@
 """
 test_cli_fuzzer_traversal.py - Systematic CLI Binary Mapping & Fuzzing Test Suite
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Traverses every single command, sub-command, flag, and argument sequence in K-CLI.
 Fuzzes with boundary inputs, invalid paths, malformed JSON, and ensures:

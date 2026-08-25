@@ -1,6 +1,6 @@
 """
 test_sdk.py - Comprehensive Unit & Integration Tests for K-CLI Universal Python SDK
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 """
 
 import os

@@ -179,7 +179,7 @@ class TrendingEngine:
         req = urllib.request.Request(
             url,
             headers={
-                "User-Agent": "K-CLI-TrendingEngine/0.4.0",
+                "User-Agent": "K-CLI-TrendingEngine/1.0.0",
                 "Accept": "application/vnd.github.v3+json",
             },
         )

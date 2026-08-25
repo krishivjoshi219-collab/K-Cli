@@ -3,7 +3,7 @@
 import warnings
 warnings.filterwarnings("ignore")
 
-__version__ = "0.4.0"
+__version__ = "1.0.0"
 
 from k_cli.core.credentials import CredentialsManager, SUPPORTED_KEYS
 CredentialsManager.load_all_credentials()

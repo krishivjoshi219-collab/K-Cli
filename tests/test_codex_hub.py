@@ -1,6 +1,6 @@
 """
 test_codex_hub.py - Comprehensive Unit & Modal Tests for K-CLI Codex Starting Screen
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Verifies:
 1. Universal Key Auto-Detection for ANY provider (Gemini, Claude, OpenAI, DeepSeek, Groq, OpenRouter, GitHub).

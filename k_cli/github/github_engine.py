@@ -1,6 +1,6 @@
 """
 github_engine.py - Complete GitHub Ecosystem & Autonomous Issue Solver for K-CLI
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 
 Full terminal management for:
 1. GitHub Issues & Autonomous Issue Solving (read -> branch -> AST patch -> verify -> PR)
@@ -221,7 +221,7 @@ class GitHubEngine:
         url = f"https://api.github.com{endpoint}" if endpoint.startswith("/") else endpoint
         headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "K-CLI-GitHub-Engine/0.4.0",
+            "User-Agent": "K-CLI-GitHub-Engine/1.0.0",
         }
         if self.token:
             headers["Authorization"] = f"token {self.token}"

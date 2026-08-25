@@ -1,6 +1,6 @@
 """
 test_killer_features.py - Full Unit & Integration Test Suite for 10 Killer Features
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 """
 
 import os

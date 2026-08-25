@@ -102,7 +102,7 @@ def generate_recording():
     rec.emit(window_bar, delay=0.1)
 
     logo = f"""{CYAN}██╗  ██╗      ██████╗██╗     ██╗{RESET}
-{CYAN}██║ ██╔╝     ██╔════╝██║     ██║{RESET}  {BOLD}{WHITE}K-CLI · Project Bankai v0.4.0{RESET}
+{CYAN}██║ ██╔╝     ██╔════╝██║     ██║{RESET}  {BOLD}{WHITE}K-CLI · Project Bankai v1.0.0{RESET}
 {CYAN}█████╔╝      ██║     ██║     ██║{RESET}  {MUTED}Agentic AI Developer Workstation — 5-Model Swarm Engine{RESET}
 {CYAN}██╔═██╗      ██║     ██║     ██║{RESET}  {GRAY}100% Free with Local Ollama · Cloud Frontier APIs · Zero Lock-In{RESET}
 {CYAN}██║  ██╗     ╚██████╗███████╗██║{RESET}

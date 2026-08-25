@@ -1,6 +1,6 @@
 """
 tui_animations.py - Premium Cyberpunk & Neon Visual Experience Engine for K-CLI
-Project Bankai Engine v0.2.0
+Project Bankai Engine v1.0.0
 
 Features:
 1. Cyberpunk / Neon ASCII banners, logo splash with smooth multi-color gradient rendering.
@@ -212,7 +212,7 @@ def render_cyber_banner(
         table,
         border_style=border_style,
         title="[bold #00f0ff]◈ K-CLI CYBER WORKSTATION ◈[/bold #00f0ff]",
-        subtitle="[dim #7000ff]Bankai v0.2.0 • Online[/dim #7000ff]",
+        subtitle="[dim #7000ff]Bankai v1.0.0 • Online[/dim #7000ff]",
     )
 
 

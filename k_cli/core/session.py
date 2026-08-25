@@ -1,5 +1,5 @@
 """
-session.py - Interactive Multi-Turn Session & Command Hub for K-CLI (Project Bankai Engine v0.1)
+session.py - Interactive Multi-Turn Session & Command Hub for K-CLI (Project Bankai Engine v1.0.0)
 
 Manages multi-turn conversation state, rolling token budgeting, active file context tracking,
 slash command dispatching, DevDocs injection, AST repo map integration, surgical patch application,

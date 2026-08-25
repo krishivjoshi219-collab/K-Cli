@@ -1,6 +1,6 @@
 """
 test_smart_git.py - Comprehensive Unit & Integration Test Suite for SmartGitEngine
-Project Bankai Engine v0.3.0
+Project Bankai Engine v1.0.0
 
 Tests:
 1. AST Symbol Extraction: classes, member methods, standalone functions, async functions.

@@ -1,6 +1,6 @@
 """
 models_hub.py - Universal AI Model Hub & Multi-Provider Model Registry for K-CLI
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 
 Supports dynamic discovery, configuration, pulling, benchmarking, and cascading for:
 1. Local Providers:
@@ -498,7 +498,7 @@ class ModelHub:
         try:
             req = urllib.request.Request(
                 f"{self.ollama_url}/api/tags",
-                headers={"User-Agent": "K-CLI/0.4.0 (AGY Edition)"},
+                headers={"User-Agent": "K-CLI/1.0.0 (AGY Edition)"},
             )
             with urllib.request.urlopen(req, timeout=3.0) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
@@ -596,14 +596,14 @@ class ModelHub:
         """Checks if a provider has active API credentials or local service available."""
         if provider == ModelProvider.OLLAMA:
             try:
-                req = urllib.request.Request(f"{self.ollama_url}/api/tags", headers={"User-Agent": "K-CLI/0.4.0"})
+                req = urllib.request.Request(f"{self.ollama_url}/api/tags", headers={"User-Agent": "K-CLI/1.0.0"})
                 with urllib.request.urlopen(req, timeout=1.0) as resp:
                     return resp.status == 200
             except Exception:
                 return False
         elif provider == ModelProvider.LLAMACPP:
             try:
-                req = urllib.request.Request(f"{self.llamacpp_url}/v1/models", headers={"User-Agent": "K-CLI/0.4.0"})
+                req = urllib.request.Request(f"{self.llamacpp_url}/v1/models", headers={"User-Agent": "K-CLI/1.0.0"})
                 with urllib.request.urlopen(req, timeout=1.0) as resp:
                     return resp.status == 200
             except Exception:
@@ -664,7 +664,7 @@ class ModelHub:
             req = urllib.request.Request(
                 f"{self.ollama_url}/api/pull",
                 data=payload,
-                headers={"Content-Type": "application/json", "User-Agent": "K-CLI/0.4.0"},
+                headers={"Content-Type": "application/json", "User-Agent": "K-CLI/1.0.0"},
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=300.0) as resp:

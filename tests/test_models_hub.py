@@ -1,6 +1,6 @@
 """
 test_models_hub.py - Comprehensive Unit & Integration Tests for Universal Model Hub
-Project Bankai Engine v0.4.0
+Project Bankai Engine v1.0.0
 """
 
 import json

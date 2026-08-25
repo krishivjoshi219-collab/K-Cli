@@ -1,6 +1,6 @@
 """
 airgap.py - Sovereign Air-Gapped Offline Engine for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Guarantees 100% offline, sovereign agent execution with zero outbound network
 packets, local compiler sandboxing, and local SLM inference.

@@ -1,6 +1,6 @@
 """
 pr_watcher.py - Autonomous PR Review & Watcher Daemon for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Monitors a GitHub repository for open pull requests, performs multi-criteria
 AI reviews, posts feedback, and can auto-merge if CI passes and reviews approve.

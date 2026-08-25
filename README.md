@@ -7,7 +7,7 @@
 ██╔═██╗      ██║     ██║     ██║
 ██║  ██╗     ╚██████╗███████╗██║
 ╚═╝  ╚═╝      ╚═════╝╚══════╝╚═╝
-  Project Bankai — Agentic AI Workstation
+  Project Bankai v1.0.0 — Agentic AI Workstation
 ```
 
 **Stop switching tabs. Stop waiting for reviews. Stop debugging alone at 2am.**  
@@ -64,7 +64,7 @@ It's not a chatbot. It's not autocomplete. It's a full **agentic AI workstation*
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────┐
-│ ⚡ K-CLI · Bankai  │ 🤖 gemini-2.0-flash  │  main (+3 ~0)  │ 🏎️ 192 tok/s  │ 💰 $0.031 saved │
+│ ⚡ K-CLI v1.0 · Bankai  │ 🤖 gemini-2.5-flash  │  main (+3 ~0)  │ 🏎️ 248 tok/s  │ 💰 $0.031 saved │
 ├──────────────────┬──────────────────────────────────────────┬────────────────────────┤
 │ 🚀 LAUNCHER      │ 💬 K-CLI Agentic Workstation              │  📜 LIVE DIFFS         │
 │                  │                                          │    auth.py   (+42 −7)  │

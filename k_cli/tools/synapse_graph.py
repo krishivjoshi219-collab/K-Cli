@@ -1,6 +1,6 @@
 """
 synapse_graph.py - AST-Indexed Neural Code Graph & Context Compressor for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Builds an in-memory & SQLite dependency graph of functions, classes, imports,
 and call edges across the codebase, extracting minimal surgical AST subgraphs

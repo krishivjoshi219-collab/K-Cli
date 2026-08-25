@@ -254,7 +254,7 @@ ASCII_BANNER = r"""
   ██║  ██╗  ╚██████╗███████╗██║
   ╚═╝  ╚═╝   ╚═════╝╚══════╝╚═╝
 [/bold cyan]
-[bold bright_white]K-CLI AGENTIC WORKSTATION v0.4.0 | Verification-First Engine[/bold bright_white]
+[bold bright_white]K-CLI AGENTIC WORKSTATION v1.0.0 | Verification-First Engine[/bold bright_white]
 [dim]Commands: /keys | /conflict | /gh | /model | /security | /clear | /test | /help | /exit[/dim]
 """
 

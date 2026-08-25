@@ -1,6 +1,6 @@
 """
 ghost_daemon.py - Ghost Terminal Autopilot & Background Error Healer for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Attaches to any dev server, compiler, or test runner subprocess, intercepts
 tracebacks and compilation errors in real-time, extracts AST context, synthesizes

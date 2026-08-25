@@ -101,7 +101,7 @@ def build_cinematic_recording():
 
     # 2. Header Banner
     logo = f"""{CYAN}██╗  ██╗      ██████╗██╗     ██╗{RESET}
-{CYAN}██║ ██╔╝     ██╔════╝██║     ██║{RESET}  {BOLD}{WHITE}K-CLI · Project Bankai v0.4.0{RESET}
+{CYAN}██║ ██╔╝     ██╔════╝██║     ██║{RESET}  {BOLD}{WHITE}K-CLI · Project Bankai v1.0.0{RESET}
 {CYAN}█████╔╝      ██║     ██║     ██║{RESET}  {MUTED}Agentic AI Developer Workstation — 5-Model Swarm Engine{RESET}
 {CYAN}██╔═██╗      ██║     ██║     ██║{RESET}  {GRAY}Ollama (Local) + Gemini + Claude + DeepSeek + Groq{RESET}
 {CYAN}██║  ██╗     ╚██████╗███████╗██║{RESET}

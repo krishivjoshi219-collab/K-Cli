@@ -1,6 +1,6 @@
 """
 tui.py - Modern Terminal User Interface Architecture for K-CLI
-Project Bankai Engine v0.2.0
+Project Bankai Engine v1.0.0
 
 Features:
 1. Live token streaming with syntax highlighting, animated spinners, and real-time metrics.
@@ -650,7 +650,7 @@ class SlashCommandHandler:
             if render_cyber_banner:
                 self.console.print(render_cyber_banner(palette="neon_cyan"))
             else:
-                self.console.print("[bold cyan]K-CLI Bankai Engine v0.2.0[/bold cyan]")
+                self.console.print("[bold cyan]K-CLI Bankai Engine v1.0.0[/bold cyan]")
             return True, "BANNER_RENDERED"
 
         # /tree, /swarm
@@ -1121,7 +1121,7 @@ TUI_ASCII_BANNER = r"""[bold cyan]
   ██╔═██╗   ██║     ██║     ██║
   ██║  ██╗  ╚██████╗███████╗██║
   ╚═╝  ╚═╝   ╚═════╝╚══════╝╚═╝
-[/bold cyan][bold bright_white]K-CLI AGENTIC WORKSTATION v0.4.0 | Verification-First Engine[/bold bright_white]"""
+[/bold cyan][bold bright_white]K-CLI AGENTIC WORKSTATION v1.0.0 | Verification-First Engine[/bold bright_white]"""
 
 if HAS_TEXTUAL:
     try:

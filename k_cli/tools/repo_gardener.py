@@ -1,6 +1,6 @@
 """
 repo_gardener.py - Nightly Autonomous Repo Maintenance & Health Engine for K-CLI
-Project Bankai v0.4.0
+Project Bankai v1.0.0
 
 Scans repository for dead code, unreferenced symbols, outdated dependencies,
 untracked technical debt, and formats actionable cleanup PRs.

@@ -1,6 +1,6 @@
 """
 adversarial_swarm.py - Adversarial Red Team / Blue Team & 5+ Multi-Model Swarm Engine
-Project Bankai v0.4.0 (AGY Edition)
+Project Bankai v1.0.0 (AGY Edition)
 
 Features:
 1. AdversarialConsensusSwarm: 3-agent Blue Team (Coder) vs Red Team (Critic) vs Judge (Verifier).
