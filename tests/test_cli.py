@@ -107,7 +107,7 @@ def test_cli_multi_model_audit_mock():
         ["audit", "write a Python function", "--models", "model-a,model-b", "--mock"],
     )
     assert result.exit_code == 0
-    assert "Independent model audit" in result.output
+    assert "Multi-Model Swarm Audit" in result.output
 
 
 def test_cli_doctor_reports_secret_hygiene(tmp_path):
