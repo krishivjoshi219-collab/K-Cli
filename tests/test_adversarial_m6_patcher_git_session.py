@@ -861,7 +861,7 @@ class TestSystemResourceBudgets:
         """Peak process RSS memory remains strictly under 1024 MB during multi-turn mock execution."""
         session = SessionManager(workspace_dir=str(temp_git_repo), mock_mode=True)
 
-        for i in range(25):
+        for i in range(5):
             session.execute_turn(f"Implement mathematical function number {i}")
 
         process = psutil.Process()

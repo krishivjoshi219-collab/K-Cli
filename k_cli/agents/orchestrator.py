@@ -201,10 +201,15 @@ class Orchestrator:
         # Deduplication check before execution
         dedup_warning = None
         dedup_dict = None
-        if self.dedup_engine is not None or DedupEngine is not None:
+        if self.dedup_engine is None and DedupEngine is not None:
             try:
-                engine = self.dedup_engine or DedupEngine()
-                d_match = engine.scan_for_duplicate(user_prompt)
+                self.dedup_engine = DedupEngine()
+            except Exception:
+                self.dedup_engine = None
+
+        if self.dedup_engine is not None:
+            try:
+                d_match = self.dedup_engine.scan_for_duplicate(user_prompt)
                 if d_match and d_match.is_duplicate:
                     dedup_warning = f"Duplicate task detected ({d_match.confidence:.1%}): {d_match.explanation}"
                     dedup_dict = d_match.to_dict()

@@ -83,7 +83,12 @@ class SessionManager:
         self.repo_map = repo_map or RepoMap(root_dir=str(self.workspace_dir))
         self.patcher = patcher or Patcher()
         self.git_guard = git_guard or GitGuard(repo_dir=str(self.workspace_dir))
-        self.orchestrator = orchestrator or Orchestrator(driver=self.driver, verifier=self.verifier)
+        try:
+            from k_cli.github.dedup_engine import DedupEngine
+            dedup_eng = DedupEngine(repo_path=str(self.workspace_dir))
+        except Exception:
+            dedup_eng = None
+        self.orchestrator = orchestrator or Orchestrator(driver=self.driver, verifier=self.verifier, dedup_engine=dedup_eng)
 
         # Context & History State
         self.context_files: List[str] = []
