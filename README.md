@@ -13,8 +13,9 @@
 **Stop switching tabs. Stop waiting for reviews. Stop debugging alone at 2am.**  
 K-CLI is an AI agent that lives in your terminal, watches your code, and ships fixes — automatically.
 
+[![PyPI](https://img.shields.io/pypi/v/k-cli-ai?color=blue&style=flat-square&logo=pypi)](https://pypi.org/project/k-cli-ai/)
 [![CI](https://github.com/krishivjoshi219-collab/K-Cli/actions/workflows/ci.yml/badge.svg)](https://github.com/krishivjoshi219-collab/K-Cli/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-114%20passing-brightgreen?style=flat-square&logo=pytest)](tests/)
+[![Tests](https://img.shields.io/badge/tests-362%20passing-brightgreen?style=flat-square&logo=pytest)](tests/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![Ollama](https://img.shields.io/badge/works%20offline-Ollama%20%2B%20local%20models-blueviolet?style=flat-square)](https://ollama.com)
@@ -30,8 +31,14 @@ K-CLI is an AI agent that lives in your terminal, watches your code, and ships f
 ## ⚡ Get started in 30 seconds
 
 ```bash
+# Option 1: One-line installer (Recommended)
 curl -sSL https://raw.githubusercontent.com/krishivjoshi219-collab/K-Cli/main/install.sh | bash
-k          # → launches the full TUI workstation
+
+# Option 2: Install directly from PyPI
+pip install k-cli-ai
+
+# Launch the full-screen Cyber TUI workstation:
+k
 ```
 
 > **No API key required.** K-CLI works 100% offline with [Ollama](https://ollama.com). Pull a free model and go:
