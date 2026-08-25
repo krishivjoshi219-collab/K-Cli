@@ -1,9 +1,10 @@
 """
-credentials.py - Universal Credentials & API Key Manager for K-CLI
+credentials.py - Universal Credentials, Key Auto-Detection & Preferences Manager for K-CLI
 Project Bankai Engine v0.4.0
 
-Provides multi-tier key discovery, interactive terminal setup, and persistent storage
-for all AI model providers and GitHub tokens.
+Provides multi-tier key discovery, auto-detection for ANY entered API key,
+interactive terminal setup, developer preferences (auto-approve, session storage),
+and persistent storage for all AI model providers and GitHub tokens.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import logging
 import os
 import urllib.request
 import urllib.error
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -32,6 +33,55 @@ SUPPORTED_KEYS = [
 ]
 
 
+def detect_key_type(key_val: str) -> Tuple[str, str]:
+    """
+    Intelligently auto-detects the provider and key_name for ANY entered API key string.
+    Returns (key_name, provider_display_name).
+    """
+    k = key_val.strip()
+    if not k:
+        return "UNKNOWN", "Empty Key"
+
+    # Google Gemini
+    if k.startswith("AIzaSy") or (len(k) == 39 and k.isalnum()):
+        return "GEMINI_API_KEY", "Google Gemini API Key"
+
+    # Anthropic Claude
+    if k.startswith("sk-ant-"):
+        return "ANTHROPIC_API_KEY", "Anthropic Claude API Key"
+
+    # Groq
+    if k.startswith("gsk_"):
+        return "GROQ_API_KEY", "Groq Fast API Key"
+
+    # OpenRouter
+    if k.startswith("sk-or-"):
+        return "OPENROUTER_API_KEY", "OpenRouter Multi-Model Key"
+
+    # OpenAI Project Keys
+    if k.startswith("sk-proj-") or k.startswith("sk-admin-"):
+        return "OPENAI_API_KEY", "OpenAI API Key"
+
+    # GitHub Tokens
+    if k.startswith("ghp_") or k.startswith("github_pat_") or k.startswith("gho_"):
+        return "GITHUB_TOKEN", "GitHub Personal Access Token"
+
+    # Ollama URL
+    if k.startswith("http://") or k.startswith("https://") or ":11434" in k:
+        return "OLLAMA_URL", "Local Ollama Endpoint URL"
+
+    # DeepSeek / Mistral / Generic OpenAI Compatible
+    if k.startswith("sk-"):
+        if len(k) == 35 or len(k) == 34:
+            return "DEEPSEEK_API_KEY", "DeepSeek API Key"
+        return "OPENAI_API_KEY", "OpenAI API Key"
+
+    if len(k) == 32 and k.isalnum():
+        return "MISTRAL_API_KEY", "Mistral AI API Key"
+
+    return "OPENAI_API_KEY", "General / OpenAI-Compatible Key"
+
+
 class CredentialsManager:
     """
     Central API Key & Credentials Store for K-CLI.
@@ -40,6 +90,7 @@ class CredentialsManager:
     CRED_DIR = Path.home() / ".kcli"
     ENV_FILE = CRED_DIR / "credentials.env"
     JSON_FILE = CRED_DIR / "credentials.json"
+    CONFIG_FILE = CRED_DIR / "config.json"
 
     @classmethod
     def load_all_credentials(cls) -> Dict[str, str]:
@@ -134,6 +185,24 @@ class CredentialsManager:
         cls.ENV_FILE.write_text("\n".join(env_lines) + "\n", encoding="utf-8")
 
     @classmethod
+    def save_any_key(cls, raw_key_val: str, explicit_key_name: Optional[str] = None) -> Tuple[str, str]:
+        """
+        Takes ANY raw entered API key string, detects its type if needed, saves it, and returns (key_name, provider_name).
+        """
+        raw_key_val = raw_key_val.strip()
+        if not raw_key_val:
+            return "", ""
+
+        if explicit_key_name:
+            key_name = explicit_key_name.strip().upper()
+            provider_name = dict(SUPPORTED_KEYS).get(key_name, key_name)
+        else:
+            key_name, provider_name = detect_key_type(raw_key_val)
+
+        cls.set_key(key_name, raw_key_val)
+        return key_name, provider_name
+
+    @classmethod
     def get_key_statuses(cls) -> List[Dict[str, Any]]:
         """
         Returns status summary for all supported keys.
@@ -196,3 +265,71 @@ class CredentialsManager:
 
         # Default check for others
         return True, "Key configured"
+
+
+class DevPreferencesManager:
+    """
+    Developer Preferences & Autonomous Permissions Engine for K-CLI.
+    Manages Auto-Approve modes, persistent session data, offline airgap, and workspace defaults.
+    """
+
+    CONFIG_FILE = Path.home() / ".kcli" / "config.json"
+
+    DEFAULT_PREFERENCES: Dict[str, Any] = {
+        "auto_approve_mode": "safe",  # "safe" | "all" | "ask"
+        "auto_save_sessions": True,
+        "auto_index_repo": True,
+        "airgap_offline_mode": False,
+        "default_model": "gemini-2.0-flash",
+        "local_fallback_model": "qwen2.5-coder:1.5b",
+        "context_token_limit": 32768,
+        "verifier_strict_gate": True,
+        "telemetry_logging": True,
+        "theme": "cyber_dark",
+    }
+
+    @classmethod
+    def load_preferences(cls) -> Dict[str, Any]:
+        """Loads preferences merged with defaults."""
+        prefs = dict(cls.DEFAULT_PREFERENCES)
+        if cls.CONFIG_FILE.exists():
+            try:
+                user_data = json.loads(cls.CONFIG_FILE.read_text(encoding="utf-8"))
+                prefs.update(user_data)
+            except Exception:
+                pass
+        return prefs
+
+    @classmethod
+    def save_preferences(cls, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Updates and persists preferences."""
+        current = cls.load_preferences()
+        current.update(updates)
+        cls.CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            cls.CONFIG_FILE.write_text(json.dumps(current, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+        return current
+
+    @classmethod
+    def get(cls, key: str, default: Any = None) -> Any:
+        prefs = cls.load_preferences()
+        return prefs.get(key, default if default is not None else cls.DEFAULT_PREFERENCES.get(key))
+
+    @classmethod
+    def set(cls, key: str, value: Any) -> None:
+        cls.save_preferences({key: value})
+
+    @classmethod
+    def should_auto_approve(cls, action_type: str = "safe") -> bool:
+        """
+        Determines whether an action should be automatically approved.
+        action_type can be: "safe" (read, test, lint, AST check), "write" (file patch), "destructive" (git reset, delete).
+        """
+        mode = cls.get("auto_approve_mode", "safe")
+        if mode == "all":
+            return True
+        if mode == "safe":
+            return action_type in ("safe", "test", "read", "verify", "diff")
+        return False

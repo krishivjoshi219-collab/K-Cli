@@ -847,3 +847,263 @@ class ModelManager:
             "model_pull": pull_res.to_dict() if pull_res else None,
             "ready": True if (not sync_model or (pull_res and pull_res.success)) else False,
         }
+
+    def pull_ollama_tag(
+        self,
+        model_tag: str,
+        progress_callback: Optional[Callable[[str], None]] = None,
+    ) -> Tuple[bool, str]:
+        """Pulls a model tag directly from Ollama registry (e.g. qwen2.5-coder:7b)."""
+        if self.mock_mode:
+            if model_tag not in self._mock_ollama_models:
+                self._mock_ollama_models.append(model_tag)
+            if progress_callback:
+                progress_callback(f"Mock: Pulled {model_tag} 100%")
+            return True, f"Mock: Pulled {model_tag} successfully."
+
+        # Check Ollama CLI
+        ollama_bin = shutil.which("ollama") or "/home/k/bin/ollama"
+        if os.path.exists(ollama_bin) and os.access(ollama_bin, os.X_OK):
+            try:
+                proc = subprocess.Popen(
+                    [ollama_bin, "pull", model_tag],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                )
+                if proc.stdout:
+                    for line in proc.stdout:
+                        if progress_callback and line.strip():
+                            progress_callback(line.strip())
+                proc.wait(timeout=600)
+                if proc.returncode == 0:
+                    return True, f"Successfully pulled {model_tag} into Ollama."
+            except Exception as e:
+                logger.debug(f"CLI pull error: {e}")
+
+        # Fallback to Ollama HTTP API /api/pull
+        try:
+            req = urllib.request.Request(
+                f"{self.ollama_url}/api/pull",
+                data=json.dumps({"name": model_tag, "stream": False}).encode("utf-8"),
+                headers={"Content-Type": "application/json", "User-Agent": "K-CLI"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=600.0) as resp:
+                if resp.status == 200:
+                    return True, f"Successfully pulled {model_tag} via Ollama API."
+        except Exception as e:
+            return False, f"Failed to pull {model_tag}: {e}"
+
+        return False, f"Could not pull {model_tag}"
+
+
+# ------------------------------------------------------------------------------
+# Curated Local Coding Models Catalog with In-Depth Pros & Cons
+# ------------------------------------------------------------------------------
+LOCAL_CODING_MODELS: List[Dict[str, Any]] = [
+    {
+        "id": "qwen2.5-coder:7b",
+        "name": "Qwen 2.5 Coder 7B",
+        "size": "4.7 GB",
+        "ram": "8 GB RAM / 6 GB VRAM",
+        "context": "32K / 128K",
+        "speed": "~65 tok/s (GPU)",
+        "pros": [
+            "🏆 #1 Open-Weight Coding Model in 7B class (HumanEval 88.4%)",
+            "✨ Flawless Multi-File AST & Surgical SEARCH/REPLACE reasoning",
+            "⚡ Fast inference speed with low memory footprint",
+            "🌐 Supports 92+ programming languages including Python, Rust, C++, Go",
+        ],
+        "cons": [
+            "⚠️ Needs 6GB+ VRAM for full GPU offload",
+            "⚠️ May struggle with ultra-large monolithic repos without AST slicing",
+        ],
+        "hf_repo": "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF",
+        "ollama_tag": "qwen2.5-coder:7b",
+    },
+    {
+        "id": "qwen2.5-coder:14b",
+        "name": "Qwen 2.5 Coder 14B",
+        "size": "9.0 GB",
+        "ram": "16 GB RAM / 10 GB VRAM",
+        "context": "32K / 128K",
+        "speed": "~45 tok/s (GPU)",
+        "pros": [
+            "🧠 Rivals proprietary GPT-4o-mini and Claude 3.5 Haiku on coding evals",
+            "🏗️ Outstanding architectural design and refactoring synthesis",
+            "🛡️ High precision on type safety, unit tests, and edge cases",
+        ],
+        "cons": [
+            "⚠️ Requires 10GB+ VRAM (or 16GB Mac Unified Memory)",
+            "⚠️ Slower execution on pure CPU without AVX-512",
+        ],
+        "hf_repo": "Qwen/Qwen2.5-Coder-14B-Instruct-GGUF",
+        "ollama_tag": "qwen2.5-coder:14b",
+    },
+    {
+        "id": "qwen2.5-coder:1.5b",
+        "name": "Qwen 2.5 Coder 1.5B (Ultra-Light)",
+        "size": "1.0 GB",
+        "ram": "2 GB RAM / 1 GB VRAM",
+        "context": "32K",
+        "speed": "~140 tok/s (GPU) / ~45 tok/s (CPU)",
+        "pros": [
+            "🚀 Ultra-fast generation (<10ms time-to-first-token)",
+            "💾 Runs on any laptop, Raspberry Pi, or low-spec VM",
+            "💰 100% Free, zero CPU throttle, ideal for autocomplete & inline diffs",
+        ],
+        "cons": [
+            "⚠️ Limited reasoning depth for complex concurrency & race conditions",
+            "⚠️ Lower context capacity for multi-file refactors",
+        ],
+        "hf_repo": "Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF",
+        "ollama_tag": "qwen2.5-coder:1.5b",
+    },
+    {
+        "id": "deepseek-r1:7b",
+        "name": "DeepSeek-R1 Distill Qwen 7B (Reasoning)",
+        "size": "4.7 GB",
+        "ram": "8 GB RAM / 6 GB VRAM",
+        "context": "32K / 64K",
+        "speed": "~50 tok/s (GPU)",
+        "pros": [
+            "🧠 Deep Chain-of-Thought reasoning inside visible <think> blocks",
+            "🔬 Excellent at finding subtle bugs, race conditions, and cryptographic flaws",
+            "⚖️ Self-corrects mistakes before emitting final verified code",
+        ],
+        "cons": [
+            "⚠️ Slower total task time due to generating extensive thinking tokens",
+            "⚠️ Can overthink trivial tasks like docstrings or variable renames",
+        ],
+        "hf_repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B-GGUF",
+        "ollama_tag": "deepseek-r1:7b",
+    },
+    {
+        "id": "deepseek-r1:14b",
+        "name": "DeepSeek-R1 Distill Qwen 14B (Advanced Reasoning)",
+        "size": "9.0 GB",
+        "ram": "16 GB RAM / 10 GB VRAM",
+        "context": "32K / 64K",
+        "speed": "~35 tok/s (GPU)",
+        "pros": [
+            "🎓 Frontier-grade mathematical and algorithmic problem solving",
+            "🛡️ Compiler-level verification and multi-step theorem proving",
+            "🏆 Top-performing 14B model for complex full-stack architectures",
+        ],
+        "cons": [
+            "⚠️ High VRAM requirement (10GB+)",
+            "⚠️ Extended latency per response",
+        ],
+        "hf_repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B-GGUF",
+        "ollama_tag": "deepseek-r1:14b",
+    },
+    {
+        "id": "llama3.3:70b",
+        "name": "Meta Llama 3.3 70B (Flagship)",
+        "size": "42 GB (Q4_K_M)",
+        "ram": "48 GB RAM / 40 GB VRAM",
+        "context": "128K",
+        "speed": "~25 tok/s (Multi-GPU)",
+        "pros": [
+            "👑 World-class general knowledge and massive 128k context window",
+            "📚 Flawless technical documentation, architectural synthesis, and RFC generation",
+            "⚡ Matches or exceeds GPT-4-0613 across software engineering evals",
+        ],
+        "cons": [
+            "⚠️ Massive hardware requirements (requires dual RTX 3090/4090 or Mac Studio)",
+            "⚠️ Unusable on low-spec single-GPU machines",
+        ],
+        "hf_repo": "meta-llama/Llama-3.3-70B-Instruct-GGUF",
+        "ollama_tag": "llama3.3:70b",
+    },
+    {
+        "id": "phi4:14b",
+        "name": "Microsoft Phi-4 14B",
+        "size": "9.1 GB",
+        "ram": "16 GB RAM / 10 GB VRAM",
+        "context": "16K",
+        "speed": "~40 tok/s (GPU)",
+        "pros": [
+            "🔬 State-of-the-art synthetic data training by Microsoft Research",
+            "📐 Dense algorithmic reasoning per parameter count",
+        ],
+        "cons": [
+            "⚠️ Smaller 16k context window compared to Qwen 2.5",
+            "⚠️ Strict system prompt sensitivity",
+        ],
+        "hf_repo": "microsoft/phi-4-gguf",
+        "ollama_tag": "phi4:14b",
+    },
+    {
+        "id": "starcoder2:15b",
+        "name": "BigCode StarCoder2 15B",
+        "size": "9.5 GB",
+        "ram": "16 GB RAM / 10 GB VRAM",
+        "context": "16K",
+        "speed": "~40 tok/s (GPU)",
+        "pros": [
+            "📜 Fully open, permissively licensed training data (The Stack v2)",
+            "🌐 600+ programming language coverage",
+        ],
+        "cons": [
+            "⚠️ Weaker natural language chat instruction following",
+        ],
+        "hf_repo": "bigcode/starcoder2-15b-gguf",
+        "ollama_tag": "starcoder2:15b",
+    },
+]
+
+BANKAI_CUSTOM_MODELS: List[Dict[str, Any]] = [
+    {
+        "id": "bankai-7b",
+        "name": "Bankai-7B GGUF (Flagship Code & AST Healer)",
+        "repo_id": "krishivjoshi/bankai-7b",
+        "default_filename": "bankai-7b.gguf",
+        "size": "4.7 GB",
+        "ram": "1.0-4.0 GB RAM Budget",
+        "ollama_tag": "bankai:7b",
+        "description": "Custom fine-tuned compiler-grounded model with AST patch synthesis, test generation, and <think> chain-of-thought.",
+    },
+    {
+        "id": "bankai-10b",
+        "name": "Bankai-10B GGUF (Multi-File Architecture)",
+        "repo_id": "krishivjoshi/bankai-10b",
+        "default_filename": "bankai-10b.gguf",
+        "size": "6.5 GB",
+        "ram": "6.0 GB RAM Budget",
+        "ollama_tag": "bankai:10b",
+        "description": "High-capacity architecture model for 10+ file scaffolding, 3-way merge conflict resolution, and PR reviews.",
+    },
+    {
+        "id": "bankai-3b",
+        "name": "Bankai-3B GGUF (Sovereign 1.0GB RAM Edition)",
+        "repo_id": "krishivjoshi/bankai-3b",
+        "default_filename": "bankai-3b.gguf",
+        "size": "2.2 GB",
+        "ram": "1.0 GB RAM Budget",
+        "ollama_tag": "bankai:3b",
+        "description": "Engineered strictly for memory-constrained environments, edge devices, and 100% offline air-gapped development.",
+    },
+    {
+        "id": "bankai-1.5b",
+        "name": "Bankai-1.5B GGUF (Fast Background Daemon)",
+        "repo_id": "krishivjoshi/bankai-1.5b",
+        "default_filename": "bankai-1.5b.gguf",
+        "size": "1.1 GB",
+        "ram": "512 MB - 1.0 GB RAM",
+        "ollama_tag": "bankai:1.5b",
+        "description": "Ultra-lightweight background model for Ghost crash interception, conventional commit generation, and real-time linting.",
+    },
+]
+
+
+def list_local_coding_models() -> List[Dict[str, Any]]:
+    """Returns the list of curated local models with pros/cons."""
+    return list(LOCAL_CODING_MODELS)
+
+
+def list_bankai_models() -> List[Dict[str, Any]]:
+    """Returns the list of custom Bankai models on Hugging Face."""
+    return list(BANKAI_CUSTOM_MODELS)
+

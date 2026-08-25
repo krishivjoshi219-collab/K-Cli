@@ -946,6 +946,48 @@ class DocRetriever:
 
         return total_indexed
 
+    def download_all_devdocs(
+        self,
+        progress_callback: Optional[Callable[[str, int], None]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Downloads and indexes all official standard libraries and developer documentation packages:
+        Python 3.12, C++23, Rust 1.80, Linux Syscalls, FastAPI, Redis, PostgreSQL, Docker, Git.
+        """
+        start_t = time.perf_counter()
+        if progress_callback:
+            progress_callback("Indexing Python 3.12 Standard Libraries...", 10)
+
+        stdlib_count = self.index_stdlib()
+
+        if progress_callback:
+            progress_callback("Indexing Curated Frameworks & Syscalls (C++23, Rust, FastAPI, Redis, PostgreSQL)...", 50)
+
+        official_count = self.index_official_libraries()
+
+        total_symbols = stdlib_count + official_count
+        duration = round(time.perf_counter() - start_t, 3)
+
+        # Count total in DB
+        total_in_db = 0
+        with self._lock:
+            if self._conn:
+                cur = self._conn.execute("SELECT COUNT(*) FROM doc_entries")
+                total_in_db = cur.fetchone()[0]
+
+        if progress_callback:
+            progress_callback(f"Done! {total_in_db} symbols indexed in {duration}s.", 100)
+
+        return {
+            "success": True,
+            "total_symbols_indexed": total_symbols,
+            "total_database_symbols": total_in_db,
+            "db_path": str(self.db_path),
+            "duration_seconds": duration,
+            "packages": list(OFFICIAL_DEV_DOCS.keys()) + ["stdlib"],
+        }
+
+
     # ─────────────────────────────────────────────────────────────────────────
     # Hybrid Search Engine (BM25 + Semantic Cosine Similarity)
     # ─────────────────────────────────────────────────────────────────────────

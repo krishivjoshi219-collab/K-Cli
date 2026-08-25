@@ -890,9 +890,10 @@ def doctor_cmd(
 
 @app.command(name="ui", help="Launch the full-screen K-CLI Textual workstation.")
 def ui_cmd(
-    model: str = typer.Option("Bankai-7B", "--model", "-m", help="Active model label."),
+    model: str = typer.Option("gemini-2.0-flash", "--model", "-m", help="Active model label."),
     persona: str = typer.Option("Fullstack AI Systems Engineer", "--persona", "-p", help="Active persona label."),
     mock: bool = typer.Option(False, "--mock", help="Use the offline mock driver."),
+    codex: bool = typer.Option(False, "--codex", "-c", help="Open the Codex onboarding hub on launch."),
     workspace: Path = typer.Option(Path("."), "--workspace", "-w", help="Workspace root."),
 ):
     """Launch the polished Textual UI without changing the caller's workspace."""
@@ -900,18 +901,38 @@ def ui_cmd(
         from k_cli.tui.tui_app import KCliApp
     except ModuleNotFoundError:
         from k_cli.tui.tui_app import KCliCyberWorkstation as KCliApp
-    KCliApp(workspace_dir=str(workspace), model_name=model, persona=persona, mock_mode=mock).run()
+    KCliApp(workspace_dir=str(workspace), model_name=model, persona=persona, mock_mode=mock, show_codex_on_start=codex).run()
 
 
 @app.command(name="tui", help="Alias for launching the full-screen K-CLI Textual workstation.")
 def tui_cmd(
-    model: str = typer.Option("Bankai-7B", "--model", "-m", help="Active model label."),
+    model: str = typer.Option("gemini-2.0-flash", "--model", "-m", help="Active model label."),
     persona: str = typer.Option("Fullstack AI Systems Engineer", "--persona", "-p", help="Active persona label."),
     mock: bool = typer.Option(False, "--mock", help="Use the offline mock driver."),
+    codex: bool = typer.Option(False, "--codex", "-c", help="Open the Codex onboarding hub on launch."),
     workspace: Path = typer.Option(Path("."), "--workspace", "-w", help="Workspace root."),
 ):
     """Launch the polished Textual UI workstation."""
-    ui_cmd(model=model, persona=persona, mock=mock, workspace=workspace)
+    ui_cmd(model=model, persona=persona, mock=mock, codex=codex, workspace=workspace)
+
+
+@app.command(name="codex", help="Launch the Codex Starting & Onboarding Hub (Cloud APIs, Local Models, Bankai HF, DevDocs).")
+def codex_cmd(
+    mock: bool = typer.Option(False, "--mock", help="Use the offline mock driver."),
+    workspace: Path = typer.Option(Path("."), "--workspace", "-w", help="Workspace root."),
+):
+    """Launch the Codex Starting Hub screen directly in the workstation."""
+    ui_cmd(mock=mock, codex=True, workspace=workspace)
+
+
+@app.command(name="setup", help="Alias for launching the Codex Starting & Onboarding Hub.")
+def setup_cmd(
+    mock: bool = typer.Option(False, "--mock", help="Use the offline mock driver."),
+    workspace: Path = typer.Option(Path("."), "--workspace", "-w", help="Workspace root."),
+):
+    """Launch the Codex Starting Hub screen."""
+    codex_cmd(mock=mock, workspace=workspace)
+
 
 
 @app.command(name="diff", help="View active uncommitted git diff or side-by-side diff.")
@@ -1044,6 +1065,29 @@ def doc(
         module = r.get("module", "")
         panel_content = f"[bold green]{sig}[/bold green]\n\n[dim]{doc_str}[/dim]"
         console.print(Panel(panel_content, title=f"Module: {module} | Symbol: {name}", border_style="cyan"))
+
+
+@app.command(name="devdocs", help="Download and index complete DevDocs offline documentation suite.")
+def devdocs_cmd(
+    download: bool = typer.Option(True, "--download", "-d", help="Download and index all official DevDocs."),
+    search: Optional[str] = typer.Option(None, "--search", "-s", help="Search offline DevDocs."),
+):
+    """Downloads all DevDocs standard libraries or searches offline docs."""
+    retriever = DocRetriever()
+    if search:
+        results = retriever.search(search, limit=3)
+        if not results:
+            console.print(f"[yellow]No documentation found for '{search}'.[/yellow]")
+            return
+        for r in results:
+            panel_content = f"[bold green]{r.get('signature')}[/bold green]\n\n[dim]{r.get('doc')}[/dim]"
+            console.print(Panel(panel_content, title=f"Module: {r.get('module')} | Symbol: {r.get('name')}", border_style="cyan"))
+        return
+
+    console.print("[bold cyan]📦 Indexing all standard libraries and frameworks into DevDocs SQLite database...[/bold cyan]")
+    res = retriever.download_all_devdocs()
+    console.print(f"[bold green]✔ Successfully indexed {res['total_database_symbols']} symbols in {res['duration_seconds']}s into {res['db_path']}![/bold green]")
+
 
 
 @app.command(name="map", help="Display AST codebase repository map for the workspace.")
