@@ -2841,12 +2841,19 @@ def interactive_mode(model: str = "qwen2.5-coder:1.5b", mock: bool = False):
     shell.run()
 
 
+def version_callback(value: bool):
+    if value:
+        console.print("[bold cyan]K-CLI[/bold cyan] [bold bright_white]v1.0.0[/bold bright_white] [dim](Project Bankai Flagship Edition)[/dim]")
+        raise typer.Exit()
+
+
 @app.callback(
     invoke_without_command=True,
     context_settings={"ignore_unknown_options": True, "allow_extra_args": True},
 )
 def main(
     ctx: typer.Context,
+    version: Optional[bool] = typer.Option(None, "--version", "-v", help="Show K-CLI version and exit.", callback=version_callback, is_eager=True),
     prompt: Optional[str] = typer.Option(None, "--prompt", "-p", help="Prompt text if running main entrypoint directly."),
 ):
     if ctx.invoked_subcommand is None:
