@@ -19,7 +19,9 @@ K-CLI is an AI agent that lives in your terminal, watches your code, and ships f
 [![License: MIT](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 [![Ollama](https://img.shields.io/badge/works%20offline-Ollama%20%2B%20local%20models-blueviolet?style=flat-square)](https://ollama.com)
 [![Models](https://img.shields.io/badge/models-ANY%20%E2%80%94%20no%20lock--in-orange?style=flat-square)](#-use-any-model--no-lock-in-ever)
-[![Stars](https://img.shields.io/github/stars/krishivjoshi219-collab/K-Cli?style=flat-square&color=gold&label=⭐%20stars)](https://github.com/krishivjoshi219-collab/K-Cli/stargazers)
+<br/>
+
+<img src="assets/demo.gif" alt="K-CLI Demo Recording" width="100%" style="border-radius: 8px; border: 1px solid #30363d;" />
 
 </div>
 
