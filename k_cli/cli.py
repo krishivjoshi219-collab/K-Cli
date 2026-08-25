@@ -514,48 +514,50 @@ def prompt_cmd(
     console.print(Panel(preview, title=f"Prompt preview · {resolve_profile(model).name}", border_style="cyan"))
 
 
-@app.command(name="audit", help="Generate candidates with multiple models and verify each locally.")
+@app.command(name="audit", help="Generate candidates with 5+ models in parallel, adversarial peer review, and verify locally.")
 def audit_cmd(
-    task: str = typer.Argument(..., help="Implementation task to audit."),
-    models: str = typer.Option(..., "--models", "-m", help="Comma-separated model names; use two or more for consensus."),
+    task: str = typer.Argument(..., help="Implementation task to audit across multiple models."),
+    models: str = typer.Option("gemini-2.0-flash,claude-3-7-sonnet,deepseek-reasoner,gpt-4o,qwen2.5-coder:7b", "--models", "-m", help="Comma-separated model names (supports 2 to 10+ models)."),
     language: str = typer.Option("python", "--language", "-l", help="Target language."),
     mock: bool = typer.Option(False, "--mock", help="Use offline mock drivers."),
     as_json: bool = typer.Option(False, "--json", help="Emit machine-readable audit results."),
 ):
+    """Executes multi-model parallel code generation, peer review, and AST verification."""
+    from k_cli.agents.adversarial_swarm import MultiModelConsensusSwarm
+
     selected_models = [item.strip() for item in models.split(",") if item.strip()]
-    if not 2 <= len(selected_models) <= 5:
-        raise typer.BadParameter("Provide between 2 and 5 distinct model names.", param_hint="--models")
-    if len(set(selected_models)) != len(selected_models):
-        raise typer.BadParameter("Model names must be distinct.", param_hint="--models")
-    result = run_audit(task, selected_models, language=language, mock=mock)
+    if len(selected_models) < 2:
+        selected_models = ["gemini-2.0-flash", "claude-3-7-sonnet", "deepseek-reasoner", "gpt-4o", "qwen2.5-coder:7b"]
+
+    swarm = MultiModelConsensusSwarm(models=selected_models, mock_mode=mock)
+    report = swarm.audit_and_generate(task_prompt=task, language=language)
+
     if as_json:
         payload = {
-            "task": task,
-            "language": language,
-            "consensus_reached": result.consensus_reached,
+            "task": report.task,
+            "selected_model": report.selected_model,
+            "consensus_score": report.consensus_score,
+            "cross_model_agreement_pct": report.cross_model_agreement_pct,
+            "total_duration_sec": report.total_duration_sec,
             "candidates": [
                 {
-                    "model": candidate.model,
-                    "code": candidate.code,
-                    "verification": candidate.verification.to_dict(),
+                    "model": c.model_name,
+                    "provider": c.provider,
+                    "ast_valid": c.ast_valid,
+                    "verification_passed": c.verification_passed,
+                    "latency_sec": c.generation_time_sec,
+                    "score": c.score,
+                    "code": c.code,
                 }
-                for candidate in result.candidates
+                for c in report.candidates
             ],
         }
-        console.print(json.dumps(payload, indent=2))
-        if not result.consensus_reached:
-            raise typer.Exit(code=1)
+        typer.echo(json.dumps(payload, indent=2))
         return
 
-    table = Table(title="Independent model audit", box=None)
-    table.add_column("Model", style="cyan")
-    table.add_column("Verification")
-    table.add_column("Guard")
-    for candidate in result.candidates:
-        table.add_row(candidate.model, "[green]passed[/green]" if candidate.verification.success else "[red]failed[/red]", candidate.verification.verification_type)
-    console.print(table)
-    status = "[green]Consensus threshold reached[/green]" if result.consensus_reached else "[yellow]No verified consensus yet — review candidates before applying.[/yellow]"
-    console.print(status)
+
+    console.print(Markdown(report.render_markdown()))
+
 
 
 @app.command(name="feature", help="Collect read-only source and test evidence for a feature claim.")

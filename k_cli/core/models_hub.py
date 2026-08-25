@@ -493,19 +493,104 @@ class ModelHub:
             is_local=True,
         )
 
-    def discover_local_ollama_models(self) -> List[str]:
-        """Queries local Ollama daemon for installed model tags."""
+    def discover_local_ollama_models(self) -> List[Dict[str, Any]]:
+        """Queries local Ollama daemon dynamically for ALL installed models and metadata."""
         try:
             req = urllib.request.Request(
                 f"{self.ollama_url}/api/tags",
-                headers={"User-Agent": "K-CLI/0.4.0"},
+                headers={"User-Agent": "K-CLI/0.4.0 (AGY Edition)"},
             )
-            with urllib.request.urlopen(req, timeout=2.0) as resp:
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                models = [m.get("name", "") for m in data.get("models", []) if m.get("name")]
-                return models
+                discovered: List[Dict[str, Any]] = []
+                for m in data.get("models", []):
+                    name = m.get("name", "")
+                    if name:
+                        size_gb = round(m.get("size", 0) / (1024**3), 2)
+                        details = m.get("details", {})
+                        quant = details.get("quantization_level", "")
+                        param_size = details.get("parameter_size", "")
+                        family = details.get("family", "")
+
+                        spec = ModelSpec(
+                            id=name,
+                            name=f"{name} ({param_size} {quant})".strip(),
+                            provider=ModelProvider.OLLAMA,
+                            context_window=32768,
+                            is_local=True,
+                            is_installed=True,
+                            description=f"Local Ollama model: {family} {param_size} {quant} ({size_gb} GB)",
+                        )
+                        self.registry[name] = spec
+                        discovered.append({
+                            "name": name,
+                            "size_gb": size_gb,
+                            "quant": quant,
+                            "param_size": param_size,
+                            "family": family,
+                            "spec": spec,
+                        })
+                return discovered
         except Exception:
             return []
+
+    def discover_all_live_models(self) -> List[ModelSpec]:
+        """
+        Dynamically queries all active local daemons (Ollama, LM Studio, vLLM)
+        and cloud provider endpoints to discover every available model in real time.
+        """
+        # 1. Local Ollama
+        self.discover_local_ollama_models()
+
+        # 2. Local LM Studio / vLLM / OpenAI Compatible endpoints
+        for local_url in ("http://localhost:1234/v1", "http://localhost:8000/v1", "http://localhost:8080/v1"):
+            try:
+                req = urllib.request.Request(f"{local_url}/models", headers={"User-Agent": "K-CLI"})
+                with urllib.request.urlopen(req, timeout=1.5) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        for item in data.get("data", []):
+                            m_id = item.get("id")
+                            if m_id:
+                                spec = ModelSpec(
+                                    id=f"local/{m_id}",
+                                    name=f"Local ({local_url}): {m_id}",
+                                    provider=ModelProvider.OPENAI_COMPATIBLE,
+                                    is_local=True,
+                                    base_url=local_url,
+                                    description=f"Local self-hosted model running on {local_url}",
+                                )
+                                self.registry[spec.id] = spec
+            except Exception:
+                pass
+
+        # 3. Groq Dynamic Models
+        groq_key = os.environ.get("GROQ_API_KEY")
+        if groq_key:
+            try:
+                req = urllib.request.Request(
+                    "https://api.groq.com/openai/v1/models",
+                    headers={"Authorization": f"Bearer {groq_key}", "User-Agent": "K-CLI"},
+                )
+                with urllib.request.urlopen(req, timeout=2.5) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode("utf-8"))
+                        for item in data.get("data", []):
+                            m_id = item.get("id")
+                            if m_id and ("llama" in m_id or "qwen" in m_id or "deepseek" in m_id or "mixtral" in m_id):
+                                spec = ModelSpec(
+                                    id=f"groq/{m_id}",
+                                    name=f"Groq Fast: {m_id}",
+                                    provider=ModelProvider.GROQ,
+                                    base_url="https://api.groq.com/openai/v1",
+                                    env_var_key="GROQ_API_KEY",
+                                    description=f"Groq ultra-fast LPU inference: {m_id}",
+                                )
+                                self.registry[spec.id] = spec
+            except Exception:
+                pass
+
+        return list(self.registry.values())
 
     def is_provider_configured(self, provider: ModelProvider) -> bool:
         """Checks if a provider has active API credentials or local service available."""
@@ -547,7 +632,8 @@ class ModelHub:
         local_only: bool = False,
     ) -> List[ModelSpec]:
         """Returns list of models matching optional provider or local filters."""
-        ollama_installed = set(self.discover_local_ollama_models())
+        ollama_models = self.discover_local_ollama_models()
+        ollama_installed = {m["name"] for m in ollama_models}
         results: List[ModelSpec] = []
 
         prov_val = provider.value if isinstance(provider, ModelProvider) else (provider.lower() if provider else None)
@@ -565,6 +651,7 @@ class ModelHub:
             results.append(spec)
 
         return results
+
 
     def pull_model(
         self,

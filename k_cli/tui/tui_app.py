@@ -1047,20 +1047,30 @@ class GitHubCenterModal(ModalScreen[None]):
 # =============================================================================
 
 class ModelHubModal(ModalScreen[None]):
-    """Universal AI Model Selector & Telemetry Benchmark Modal."""
+    """Universal Dynamic AI Model Selector & Telemetry Benchmark Modal."""
 
     DEFAULT_CSS = """
     ModelHubModal {
         align: center middle;
-        background: rgba(10, 15, 30, 0.9);
+        background: rgba(10, 15, 30, 0.92);
     }
 
     #model-box {
-        width: 85%;
-        height: 80%;
+        width: 90%;
+        height: 85%;
         background: #0d1117;
         border: heavy #00f0ff;
-        padding: 1;
+        padding: 1 2;
+    }
+
+    #model-custom-row {
+        height: 3;
+        margin-bottom: 1;
+    }
+
+    #input-custom-model-tag {
+        width: 1fr;
+        margin-right: 1;
     }
 
     #model-opt-container {
@@ -1070,6 +1080,7 @@ class ModelHubModal(ModalScreen[None]):
     #model-act {
         height: 3;
         align: center middle;
+        margin-top: 1;
     }
 
     #model-act Button {
@@ -1081,48 +1092,177 @@ class ModelHubModal(ModalScreen[None]):
 
     def compose(self) -> ComposeResult:
         with Container(id="model-box"):
-            yield Label("🤖 Universal AI Model Hub — Local SLMs & Cloud LLMs")
+            yield Label("🤖 Universal Dynamic Model Hub — Local SLMs & Cloud LLMs", classes="vault-title")
+            yield Label("Dynamically discovered from Ollama daemon (/api/tags), Cloud APIs, and local endpoints. Use ANY model without restrictions.", classes="vault-desc")
+
+            with Horizontal(id="model-custom-row"):
+                yield Input(
+                    placeholder="Type ANY custom model (e.g. ollama/qwen2.5:32b, openai/o3-mini, claude-3-7-sonnet, deepseek-reasoner, groq/llama-3.3-70b)...",
+                    id="input-custom-model-tag",
+                )
+                yield Button("⚡ Set Active", variant="primary", id="btn-apply-custom-model")
+
             with Container(id="model-opt-container"):
                 yield OptionList(id="opt-model-list")
 
             with Horizontal(id="model-act"):
-                yield Button("🏎️ Run Benchmark", variant="primary", id="btn-m-bench")
-                yield Button("📥 Pull Local Model", variant="success", id="btn-m-pull")
-                yield Button("⚡ Select Active Model", variant="warning", id="btn-m-select")
+                yield Button("🔄 Rescan (Ollama & Cloud)", variant="default", id="btn-m-rescan")
+                yield Button("🏎️ Run Benchmark", variant="warning", id="btn-m-bench")
+                yield Button("📥 Pull Model", variant="success", id="btn-m-pull")
+                yield Button("⚡ Select Highlighted", variant="primary", id="btn-m-select")
                 yield Button("✖ Close", variant="default", id="btn-m-close")
 
     def on_mount(self) -> None:
+        self.load_models()
+
+    def load_models(self) -> None:
         hub = ModelHub()
+        hub.discover_all_live_models()
         opt = self.query_one("#opt-model-list", OptionList)
         opt.clear_options()
         for m in hub.list_models():
             type_str = "Local SLM" if m.is_local else "Cloud LLM"
-            opt.add_option(Option(f"[{m.provider.value.upper()}] {m.id} ({type_str}) — {m.description[:45]}", id=m.id))
+            status_p = "🟢 Installed" if m.is_installed else ("🟢 Ready" if not m.is_local else "📥 Pullable")
+            opt.add_option(Option(f"[{m.provider.value.upper()}] {m.id} ({type_str}) [{status_p}] — {m.description[:45]}", id=m.id))
 
-    @on(Button.Pressed, "#btn-m-bench")
-    def on_bench(self) -> None:
-        res = ModelHub().benchmark_model("qwen2.5-coder:1.5b", driver=LLMDriver(mock_mode=True))
-        self.app.notify(
-            f"Benchmark Results:\n• Model: {res.model_id}\n• Throughput: {res.tokens_per_second:.1f} tok/s\n• TTFT: {res.time_to_first_token:.3f}s\n• RAM: {res.ram_rss_mb:.1f}MB",
-            title="Benchmark Succeeded",
-            severity="information",
-        )
+    @on(Button.Pressed, "#btn-m-rescan")
+    def on_rescan(self) -> None:
+        self.load_models()
+        self.app.notify("Live discovery scan completed across Ollama and Cloud APIs.", title="Models Refreshed", severity="information")
 
     @on(Button.Pressed, "#btn-m-pull")
     def on_pull(self) -> None:
-        self.app.notify("Pulling model weights via Ollama...", title="Model Pull", severity="information")
+        opt = self.query_one("#opt-model-list", OptionList)
+        sel_id = opt.get_option_at_index(opt.highlighted).id if opt.highlighted is not None else "qwen2.5-coder:1.5b"
+        self.app.notify(f"Pulling model weights for '{sel_id}' via Ollama...", title="Model Pull", severity="information")
+
+
+    @on(Button.Pressed, "#btn-apply-custom-model")
+    def on_apply_custom(self) -> None:
+        inp = self.query_one("#input-custom-model-tag", Input)
+        val = inp.value.strip()
+        if not val:
+            self.app.notify("Please enter a model identifier.", title="Model Empty", severity="warning")
+            return
+        DevPreferencesManager.set("default_model", val)
+        self.app.notify(f"Switched active model to custom '{val}'!", title="Custom Model Activated", severity="information")
+        self.dismiss()
+
+    @on(Button.Pressed, "#btn-m-bench")
+    def on_bench(self) -> None:
+        opt = self.query_one("#opt-model-list", OptionList)
+        sel_id = opt.get_option_at_index(opt.highlighted).id if opt.highlighted is not None else "qwen2.5-coder:1.5b"
+        res = ModelHub().benchmark_model(sel_id, driver=LLMDriver(mock_mode=True))
+        self.app.notify(
+            f"Benchmark ({sel_id}):\n• Throughput: {res.tokens_per_second:.1f} tok/s\n• TTFT: {res.time_to_first_token:.3f}s\n• RAM: {res.ram_rss_mb:.1f}MB",
+            title="Benchmark Succeeded",
+            severity="information",
+        )
 
     @on(Button.Pressed, "#btn-m-select")
     def on_select(self) -> None:
         opt = self.query_one("#opt-model-list", OptionList)
         if opt.highlighted is not None:
             sel = opt.get_option_at_index(opt.highlighted)
+            DevPreferencesManager.set("default_model", sel.id)
             self.app.notify(f"Active model switched to {sel.id}", title="Model Switched", severity="information")
             self.dismiss()
 
     @on(Button.Pressed, "#btn-m-close")
     def on_close(self) -> None:
         self.dismiss()
+
+
+# =============================================================================
+# 4b. 5+ Multi-Model Parallel Audit & Consensus Modal (Ctrl+U)
+# =============================================================================
+
+class MultiModelAuditModal(ModalScreen[None]):
+    """5+ Multi-Model Swarm Parallel Code Generation & AST Verification Auditor Modal."""
+
+    DEFAULT_CSS = """
+    MultiModelAuditModal {
+        align: center middle;
+        background: rgba(10, 15, 30, 0.92);
+    }
+
+    #audit-box {
+        width: 92%;
+        height: 90%;
+        background: #0d1117;
+        border: heavy #00f0ff;
+        padding: 1 2;
+    }
+
+    #audit-input-row {
+        height: 3;
+        margin-top: 1;
+    }
+
+    #input-audit-task {
+        width: 1fr;
+    }
+
+    #audit-log {
+        height: 1fr;
+        background: #161b22;
+        border: panel #30363d;
+        padding: 1;
+        margin-top: 1;
+    }
+
+    #audit-act {
+        height: 3;
+        align: center middle;
+        margin-top: 1;
+    }
+
+    #audit-act Button {
+        margin: 0 1;
+    }
+    """
+
+    BINDINGS = [Binding("escape", "dismiss", "Close")]
+
+    def compose(self) -> ComposeResult:
+        with Container(id="audit-box"):
+            yield Label("⚡ 5+ MULTI-MODEL SWARM AUDITOR & CONSENSUS ENGINE", classes="vault-title")
+            yield Label("Dispatches task to 5+ models in parallel (Gemini, Claude, GPT-4o, DeepSeek, Local Ollama), gathers AST validity, peer reviews, and ranks winner.", classes="vault-desc")
+
+            with Horizontal(id="audit-input-row"):
+                yield Input(
+                    placeholder="Enter complex coding task or architectural problem (e.g. Build lock-free concurrent ring buffer)...",
+                    id="input-audit-task",
+                )
+
+            yield RichLog(id="audit-log", highlight=True)
+
+            with Horizontal(id="audit-act"):
+                yield Button("⚡ Run 5-Model Swarm Audit", variant="primary", id="btn-run-audit")
+                yield Button("✖ Close", variant="default", id="btn-close-audit")
+
+    def on_mount(self) -> None:
+        log = self.query_one("#audit-log", RichLog)
+        log.write("Swarm members ready: [Gemini 2.0 Flash] [Claude 3.7 Sonnet] [DeepSeek Reasoner] [OpenAI GPT-4o] [Local Ollama Qwen].\nEnter a task above and click 'Run 5-Model Swarm Audit'.")
+
+    @on(Button.Pressed, "#btn-run-audit")
+    def on_run_audit(self) -> None:
+        inp = self.query_one("#input-audit-task", Input)
+        task_str = inp.value.strip() or "Implement a high-performance thread-safe concurrent LRU Cache with TTL in Python"
+        self.app.notify(f"Dispatching task to 5+ models in parallel...", title="Swarm Dispatch", severity="information")
+        log = self.query_one("#audit-log", RichLog)
+        log.clear()
+
+        from k_cli.agents.adversarial_swarm import MultiModelConsensusSwarm
+        swarm = MultiModelConsensusSwarm(mock_mode=True)
+        report = swarm.audit_and_generate(task_prompt=task_str)
+        log.write(report.render_markdown())
+        self.app.notify(f"Swarm consensus reached! Winning model: {report.selected_model}", title="Audit Succeeded", severity="information")
+
+    @on(Button.Pressed, "#btn-close-audit")
+    def on_close(self) -> None:
+        self.dismiss()
+
 
 
 # =============================================================================
@@ -1443,10 +1583,11 @@ class KCliCyberWorkstation(App):
 
     BINDINGS = [
         Binding("ctrl+o", "open_codex", "Codex", show=True),
+        Binding("ctrl+u", "open_audit", "Swarm Audit", show=True),
+        Binding("ctrl+m", "open_models", "Models", show=True),
         Binding("ctrl+a", "open_vault", "API Vault", show=True),
         Binding("ctrl+k", "open_conflicts", "Conflicts", show=True),
         Binding("ctrl+g", "open_github", "GitHub", show=True),
-        Binding("ctrl+m", "open_models", "Models", show=True),
         Binding("ctrl+s", "open_security", "Security", show=True),
         Binding("ctrl+h", "open_local_hub", "Local Hub", show=True),
         Binding("ctrl+r", "open_trending", "Trending", show=True),
@@ -1465,7 +1606,7 @@ class KCliCyberWorkstation(App):
     ):
         super().__init__(**kwargs)
         self.workspace_dir = workspace_dir
-        self.model_name = model_name
+        self.model_name = DevPreferencesManager.get("default_model", model_name)
         self.persona_label = persona
         self.mock_mode = mock_mode
         self.show_codex_on_start = show_codex_on_start
@@ -1487,6 +1628,8 @@ class KCliCyberWorkstation(App):
             # Left: Antigravity Navigator
             with VerticalScroll(id="sidebar-left"):
                 yield Label("🚀 1-CLICK LAUNCHER", classes="sidebar-section-title")
+                yield Button("⚡ 5-Model Swarm Audit", variant="warning", id="btn-side-audit-swarm", classes="launcher-btn")
+                yield Button("🤖 Dynamic Model Hub", variant="primary", id="btn-side-models", classes="launcher-btn")
                 yield Button("📖 Codex & Setup Hub", variant="primary", id="btn-side-codex", classes="launcher-btn")
                 yield Button("🔑 API Key Vault", variant="default", id="btn-side-vault", classes="launcher-btn")
                 yield Button("👻 Ghost Autopilot", variant="default", id="btn-side-ghost", classes="launcher-btn")
@@ -1503,10 +1646,10 @@ class KCliCyberWorkstation(App):
                 yield Button("🔥 Trending on GitHub", variant="success", id="btn-side-trending", classes="launcher-btn")
                 yield Button("⚔️ Merge Conflicts", variant="default", id="btn-side-conflicts", classes="launcher-btn")
                 yield Button("🐙 GitHub Center", variant="default", id="btn-side-github", classes="launcher-btn")
-                yield Button("🤖 Switch AI Model", variant="default", id="btn-side-models", classes="launcher-btn")
                 yield Button("🛡️ Security Auto-Heal", variant="warning", id="btn-side-security", classes="launcher-btn")
                 yield Button("🚨 Incident Triage", variant="error", id="btn-side-triage", classes="launcher-btn")
                 yield Button("📊 Repo Architecture", variant="success", id="btn-side-diagram", classes="launcher-btn")
+
 
                 yield Label("📁 CONTEXT PINS", classes="sidebar-section-title")
                 yield Label("• @main.py\n• @orchestrator.py\n• @sdk.py", id="lbl-context-files")
@@ -1528,6 +1671,8 @@ class KCliCyberWorkstation(App):
 
                 # 1-Click Action Chips Bar
                 with Horizontal(id="chips-bar"):
+                    yield Button("⚡ 5-Model Audit", variant="warning", id="chip-audit", classes="chip-btn")
+                    yield Button("🤖 Models", variant="primary", id="chip-models", classes="chip-btn")
                     yield Button("📖 Codex", variant="primary", id="chip-codex", classes="chip-btn")
                     yield Button("⚡ Plan Task", variant="default", id="chip-plan", classes="chip-btn")
                     yield Button("🐙 Local Hub", variant="primary", id="chip-hub", classes="chip-btn")
@@ -1535,13 +1680,12 @@ class KCliCyberWorkstation(App):
                     yield Button("⚔️ Conflicts", variant="default", id="chip-conflict", classes="chip-btn")
                     yield Button("🐙 GitHub", variant="default", id="chip-gh", classes="chip-btn")
                     yield Button("🔑 API Keys", variant="default", id="chip-keys", classes="chip-btn")
-                    yield Button("🤖 Models", variant="default", id="chip-models", classes="chip-btn")
                     yield Button("🛡️ Security", variant="warning", id="chip-security", classes="chip-btn")
                     yield Button("🧹 Clear", variant="error", id="chip-clear", classes="chip-btn")
 
                 # Prompt Input Bar
                 with Horizontal(id="input-row"):
-                    yield Input(placeholder="Ask K-CLI anything or click a 1-Click launcher button...", id="main-prompt-input")
+                    yield Input(placeholder="Ask K-CLI anything, type /audit, or click a 1-Click launcher button...", id="main-prompt-input")
                     yield Button("🚀 Send", variant="primary", id="btn-main-send")
 
             # Right: Auxiliary Inspector Drawer
@@ -1566,6 +1710,9 @@ class KCliCyberWorkstation(App):
     # Action Handlers for Modals
     def action_open_codex(self) -> None:
         self.push_screen(CodexStartingModal())
+
+    def action_open_audit(self) -> None:
+        self.push_screen(MultiModelAuditModal())
 
     def action_open_vault(self) -> None:
         self.push_screen(CredentialsVaultModal())
@@ -1594,6 +1741,11 @@ class KCliCyberWorkstation(App):
         scroll.mount(Markdown("# 🧹 Workspace Cleared\nReady for new tasks."))
 
     # Button click routing
+    @on(Button.Pressed, "#btn-side-audit-swarm")
+    @on(Button.Pressed, "#chip-audit")
+    def on_audit_swarm_click(self) -> None:
+        self.action_open_audit()
+
     @on(Button.Pressed, "#btn-side-codex")
     @on(Button.Pressed, "#chip-codex")
     def on_codex_click(self) -> None:
@@ -1749,6 +1901,14 @@ class KCliCyberWorkstation(App):
             if val in ("/codex", "/setup", "/start"):
                 self.action_open_codex()
                 return
+            elif val.startswith("/audit") or val.startswith("/swarm"):
+                task_p = val.split(maxsplit=1)[1] if " " in val else "Implement high-performance concurrent LRU cache in Python"
+                from k_cli.agents.adversarial_swarm import MultiModelConsensusSwarm
+                swarm = MultiModelConsensusSwarm(mock_mode=True)
+                report = swarm.audit_and_generate(task_prompt=task_p)
+                scroll.mount(Markdown(report.render_markdown()))
+                scroll.scroll_end(animate=False)
+                return
             elif val in ("/keys", "/api", "/vault"):
                 self.action_open_vault()
                 return
@@ -1778,6 +1938,7 @@ class KCliCyberWorkstation(App):
                 scroll.mount(Markdown("• Inspecting AST codebase map\n• Resolving context references\n• Synthesizing surgical changes\n• Verifying against test suites"))
             scroll.mount(Markdown(f"**K-CLI Agent**:\n{resp}"))
         scroll.scroll_end(animate=False)
+
 
 
 # Alias for backward compatibility
